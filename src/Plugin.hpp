@@ -439,11 +439,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullCustomDamage(int senderNpc_ID, int receiverNpc_ID)
+	int Call_PullCustomDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialDamage, int spellID)
 	{
-		int funcIndex = parser->GetIndex(zSTRING("PullCustomMagicDamage")); if (funcIndex < 0) return -1;
+		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -451,11 +451,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullCustomProtection(int senderNpc_ID, int receiverNpc_ID)
+	int Call_PullCustomProtection(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialProtection, int spellID)
 	{
-		int funcIndex = parser->GetIndex(zSTRING("PullCustomMagicProtection")); if (funcIndex < 0) return -2;
+		int funcIndex = parser->GetIndex(zSTRING("PullCustomProtection")); if (funcIndex < 0) return -2;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialProtection, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < -1) return -2;
@@ -469,7 +469,7 @@ namespace GOTHIC_NAMESPACE
 	auto Hook_oCNpc_oSDamageDescriptor_SetFXHit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0072F240, 0x0076DB70, 0x0077AFA0, 0x00664210)), &oCNpc_oSDamageDescriptor_SetFXHit, Union::HookType::Hook_Detours);
 	void __fastcall oCNpc_oSDamageDescriptor_SetFXHit(oCNpc::oSDamageDescriptor& self, void* vtable, oCVisualFX* vfx)
 	{
-		int customSpellDamage = -1;
+		int customDamage = -1;
 
 		oCNpc* targetNpc = nullptr;
 
@@ -479,13 +479,13 @@ namespace GOTHIC_NAMESPACE
 
 			if (self.pNpcAttacker != nullptr && targetNpc != nullptr && self.nSpellID >= 0)
 			{
-				customSpellDamage = Call_PullCustomMagicDamage(self.pNpcAttacker->GetInstance(), targetNpc->GetInstance(), self.nSpellID);
+				customDamage = Call_PullCustomDamage(self.pNpcAttacker->GetInstance(), targetNpc->GetInstance(), self.enuModeDamage, self.fDamageTotal, self.nSpellID);
 			}
 		}
 
-		if (targetNpc != nullptr && self.nSpellID >= 0 && customSpellDamage >= 0)
+		if (targetNpc != nullptr && self.nSpellID >= 0 && customDamage >= 0)
 		{
-			self.fDamageTotal = customSpellDamage;
+			self.fDamageTotal = customDamage;
 		}
 
 		Hook_oCNpc_oSDamageDescriptor_SetFXHit(self, vtable, vfx);
@@ -497,29 +497,34 @@ namespace GOTHIC_NAMESPACE
 	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0072F280, 0x0076DBC0, 0x0077D390, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd)
 	{
-		int customDamage = -1;
+		int savedProtection = self->protection[dd.enuModeDamage];
 
-		int savedProtection = self->protection[oEDamageIndex_Magic];
-		int customMagicProtection = -2;
+		int customProtection = -2;
+		int customDamage = -1;
 
 		Union::StringANSI(dd.fDamageTotal ? zSTRING(dd.fDamageTotal) : zSTRING("None result")).StdPrintLine();
 
 		if (dd.pNpcAttacker != nullptr && self != nullptr)
 		{
-			if (dd.nSpellID >= 0)
-			{
-				customMagicProtection = Call_PullCustomMagicProtection(dd.pNpcAttacker->GetInstance(), self->GetInstance(), dd.nSpellID);
-			}
+			customProtection = Call_PullCustomProtection(dd.pNpcAttacker->GetInstance(), self->GetInstance(), dd.enuModeDamage, self->protection[dd.enuModeDamage], dd.nSpellID);
+			customDamage = Call_PullCustomDamage(dd.pNpcAttacker->GetInstance(), self->GetInstance(), dd.enuModeDamage, dd.fDamageTotal, dd.nSpellID);
 		};
 
-		if (self != nullptr && customMagicProtection >= -1)
+		if (self != nullptr)
 		{
-			self->protection[oEDamageIndex_Magic] = customMagicProtection;
+			if (customProtection >= -1)
+			{
+				self->protection[dd.enuModeDamage] = customProtection;
+			}
+			if (customDamage >= 0)
+			{
+				dd.fDamageTotal = customDamage;
+			}
 		}
 
 		Hook_oCNpc_OnDamage_Hit(self, vtable, dd);
 
-		self->protection[oEDamageIndex_Magic] = savedProtection;
+		self->protection[dd.enuModeDamage] = savedProtection;
 	}
 
 	/*void __fastcall zCMenu_Render(zCMenu* self, void* vtable);
