@@ -415,11 +415,41 @@ namespace GOTHIC_NAMESPACE
 		Game_Loop();
 	}
 
-	int Call_PullCustomMagicDamage(int senderNpc_ID, int receiverNpc_ID, int spellID)
-	{
-		int funcIndex = parser->GetIndex(zSTRING("PullCustomMagicDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, spellID);
+	int GetDamageIndex(oETypeDamage damageType)
+	{
+		if (damageType == oEDamageType_Barrier) return oEDamageIndex_Barrier;
+		if (damageType == oEDamageType_Blunt) return oEDamageIndex_Blunt;
+		if (damageType == oEDamageType_Edge) return oEDamageIndex_Edge;
+		if (damageType == oEDamageType_Fire) return oEDamageIndex_Fire;
+		if (damageType == oEDamageType_Fly) return oEDamageIndex_Fly;
+		if (damageType == oEDamageType_Magic) return oEDamageIndex_Magic;
+		if (damageType == oEDamageType_Point) return oEDamageIndex_Point;
+		if (damageType == oEDamageType_Fall) return oEDamageIndex_Fall;
+
+		return -1;
+	}
+
+	int GetProtectionIndex(oETypeDamage damageType)
+	{
+		if (damageType == oEDamageType_Barrier) return oEDamageIndex_Barrier;
+		if (damageType == oEDamageType_Blunt) return oEDamageIndex_Blunt;
+		if (damageType == oEDamageType_Edge) return oEDamageIndex_Edge;
+		if (damageType == oEDamageType_Fire) return oEDamageIndex_Fly;
+		if (damageType == oEDamageType_Fly) return oEDamageIndex_Fire;
+		if (damageType == oEDamageType_Magic) return oEDamageIndex_Magic;
+		if (damageType == oEDamageType_Point) return oEDamageIndex_Point;
+		if (damageType == oEDamageType_Fall) return oEDamageIndex_Fall;
+
+		return -1;
+	}
+
+
+	int Call_PullIsCustomDamageType(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
+	{
+		int funcIndex = parser->GetIndex(zSTRING("PullIsCustomDamageType")); if (funcIndex < 0) return -1;
+
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, itemInstance_ID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -427,23 +457,23 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullCustomMagicProtection(int senderNpc_ID, int receiverNpc_ID, int spellID)
+	int Call_PullMinimalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int spellID)
 	{
-		int funcIndex = parser->GetIndex(zSTRING("PullCustomMagicProtection")); if (funcIndex < 0) return -2;
+		int funcIndex = parser->GetIndex(zSTRING("PullMinimalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, spellID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
-		if (dataValue < -1) return -2;
+		if (dataValue < 0) return -1;
 
 		return dataValue;
 	}
 
-	int Call_PullCustomDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialDamage, int spellID)
+	int Call_PullCustomDamage(int senderNpc_ID, int receiverNpc_ID, int isTotalDamage, int damageType, int initialDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, isTotalDamage, damageType, initialDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -469,6 +499,8 @@ namespace GOTHIC_NAMESPACE
 	auto Hook_oCNpc_oSDamageDescriptor_SetFXHit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0072F240, 0x0076DB70, 0x0077AFA0, 0x00664210)), &oCNpc_oSDamageDescriptor_SetFXHit, Union::HookType::Hook_Detours);
 	void __fastcall oCNpc_oSDamageDescriptor_SetFXHit(oCNpc::oSDamageDescriptor& self, void* vtable, oCVisualFX* vfx)
 	{
+		int damageIndex = GetDamageIndex(reinterpret_cast<oEDamageType&>(self.enuModeDamage)); // damage index by damageType
+
 		int customDamage = -1;
 
 		oCNpc* targetNpc = nullptr;
@@ -479,7 +511,7 @@ namespace GOTHIC_NAMESPACE
 
 			if (self.pNpcAttacker != nullptr && targetNpc != nullptr && self.nSpellID >= 0)
 			{
-				customDamage = Call_PullCustomDamage(self.pNpcAttacker->GetInstance(), targetNpc->GetInstance(), self.enuModeDamage, self.fDamageTotal, self.nSpellID);
+				customDamage = Call_PullCustomDamage(self.pNpcAttacker->GetInstance(), targetNpc->GetInstance(), 1, damageIndex, self.fDamageTotal, self.nSpellID);
 			}
 		}
 
@@ -493,38 +525,251 @@ namespace GOTHIC_NAMESPACE
 
 	//0x00666610 public: void __thiscall oCNpc::OnDamage_Hit(struct oCNpc::oSDamageDescriptor&)
 
+	/*void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd);
+	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0072F280, 0x0076DBC0, 0x0077D390, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
+	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd)
+	{
+		//Union::StringANSI(zSTRING("PreHookDamageTotal: ")).StdPrint(); Union::StringANSI(dd.fDamageTotal >= -2 ? zSTRING(dd.fDamageTotal) : zSTRING("None result")).StdPrintLine();
+
+		int damageIndex = GetDamageIndex(reinterpret_cast<oEDamageType&>(dd.enuModeDamage)); // damage index by damageType
+		int protectionIndex = GetProtectionIndex(reinterpret_cast<oEDamageType&>(dd.enuModeDamage)); // protection index by damageType
+
+		int savedReceiverProtection = self->protection[protectionIndex];
+
+		int savedAttackerStrength = dd.pNpcAttacker->attribute[NPC_ATR_STRENGTH];
+		int savedAttackerDexterity = dd.pNpcAttacker->attribute[NPC_ATR_DEXTERITY];
+		int savedWeaponDamage = dd.aryDamage[damageIndex];
+
+		//// custom custom //
+		//int customDamageType = -1;
+
+		//if (dd.pNpcAttacker != nullptr && self != nullptr)
+		//{
+		//	customDamageType = Call_PullIsCustomDamageType(dd.pNpcAttacker->GetInstance(), self->GetInstance(), dd.pItemWeapon->GetInstance());
+		//};
+
+		//if (customDamageType)
+		//{
+		//	dd.enuModeDamage = customDamageType;
+		//}
+		//// custom custom //
+
+		int customProtection = -2;
+
+		if (dd.pNpcAttacker != nullptr && self != nullptr)
+		{
+			customProtection = Call_PullCustomProtection(dd.pNpcAttacker->GetInstance(), self->GetInstance(), damageIndex, self->protection[protectionIndex], dd.nSpellID);
+		};
+
+		if (customProtection >= -1)
+		{
+			if (self != nullptr)
+			{
+				self->protection[protectionIndex] = customProtection;
+			}
+		}
+
+		Union::StringANSI(zSTRING("PreAttackerStrength: ")).StdPrint(); Union::StringANSI(savedAttackerStrength ? zSTRING(savedAttackerStrength) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("PreAttackerDexterity: ")).StdPrint(); Union::StringANSI(savedAttackerDexterity ? zSTRING(savedAttackerDexterity) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("PreReceiverProtection: ")).StdPrint(); Union::StringANSI(savedReceiverProtection ? zSTRING(savedReceiverProtection) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("enuModeDamage: ")).StdPrint(); Union::StringANSI(dd.enuModeDamage ? zSTRING(dd.enuModeDamage) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("damageIndex: ")).StdPrint(); Union::StringANSI(damageIndex ? zSTRING(damageIndex) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("fDamageTotal: ")).StdPrint(); Union::StringANSI(dd.fDamageTotal ? zSTRING(dd.fDamageTotal) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("AryDamage: ")).StdPrint(); Union::StringANSI(dd.aryDamage[damageIndex] ? zSTRING(dd.aryDamage[damageIndex]) : zSTRING("None result")).StdPrintLine();
+
+		int customPureDamage = -1;
+
+		if (dd.pNpcAttacker != nullptr && self != nullptr)
+		{
+			customPureDamage = Call_PullCustomDamage(dd.pNpcAttacker->GetInstance(), self->GetInstance(), 0, damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
+		};
+
+		if (customPureDamage >= 0)
+		{
+			dd.aryDamage[damageIndex] = customPureDamage;
+		}
+
+		int customTotalDamage = -1;
+
+		if (dd.pNpcAttacker != nullptr && self != nullptr)
+		{
+			int customIntermidiateDamage = -1;
+
+			if (dd.enuModeDamage == oEDamageType_Blunt || dd.enuModeDamage == oEDamageType_Edge)
+			{
+				customIntermidiateDamage = dd.aryDamage[damageIndex] + dd.pNpcAttacker->GetAttribute(NPC_ATR_STRENGTH);
+			}
+			if (dd.enuModeDamage == oEDamageType_Point)
+			{
+				customIntermidiateDamage = dd.aryDamage[damageIndex] + dd.pNpcAttacker->GetAttribute(NPC_ATR_DEXTERITY);
+			}
+
+			Union::StringANSI(zSTRING("AryDamage1: ")).StdPrint(); Union::StringANSI(dd.aryDamage[damageIndex] ? zSTRING(dd.aryDamage[damageIndex]) : zSTRING("None result")).StdPrintLine();
+			Union::StringANSI(zSTRING("IntermidiateDamage: ")).StdPrint(); Union::StringANSI(customIntermidiateDamage >= -2 ? zSTRING(customIntermidiateDamage) : zSTRING("None result")).StdPrintLine();
+
+			customTotalDamage = Call_PullCustomDamage(dd.pNpcAttacker->GetInstance(), self->GetInstance(), 1, damageIndex, customIntermidiateDamage >= 0 ? customIntermidiateDamage : dd.aryDamage[damageIndex], dd.nSpellID);
+		};
+
+		if (customTotalDamage >= 0)
+		{
+			if (dd.enuModeDamage == oEDamageType_Blunt || dd.enuModeDamage == oEDamageType_Edge)
+			{
+				dd.pNpcAttacker->attribute[NPC_ATR_STRENGTH] = customTotalDamage - savedWeaponDamage;
+				dd.aryDamage[damageIndex] = 0;
+			}
+			else if (dd.enuModeDamage == oEDamageType_Point)
+			{
+				dd.pNpcAttacker->attribute[NPC_ATR_DEXTERITY] = customTotalDamage - savedWeaponDamage;
+				dd.aryDamage[damageIndex] = 0;
+			}
+			else
+			{
+				dd.aryDamage[damageIndex] = customTotalDamage;
+			}
+		}
+
+		Union::StringANSI(zSTRING("PreHookTotalDamage: ")).StdPrint(); Union::StringANSI(customTotalDamage >= -2 ? zSTRING(customTotalDamage) : zSTRING("None result")).StdPrintLine();
+
+		Hook_oCNpc_OnDamage_Hit(self, vtable, dd);
+
+		Union::StringANSI(zSTRING("PostHookTotalDamage: ")).StdPrint(); Union::StringANSI(customTotalDamage >= -2 ? zSTRING(customTotalDamage) : zSTRING("None result")).StdPrintLine();
+		//Union::StringANSI(zSTRING("PostHookDamageTotal: ")).StdPrint(); Union::StringANSI(dd.fDamageTotal >= -2 ? zSTRING(dd.fDamageTotal) : zSTRING("None result")).StdPrintLine();
+		
+		self->protection[protectionIndex] = savedReceiverProtection;
+
+		dd.pNpcAttacker->attribute[NPC_ATR_STRENGTH] = savedAttackerStrength;
+		dd.pNpcAttacker->attribute[NPC_ATR_DEXTERITY] = savedAttackerDexterity;
+
+		Union::StringANSI(zSTRING("PostAttackerStrength: ")).StdPrint(); Union::StringANSI(dd.pNpcAttacker->attribute[NPC_ATR_STRENGTH] ? zSTRING(dd.pNpcAttacker->attribute[NPC_ATR_STRENGTH]) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("PostAttackerDexterity: ")).StdPrint(); Union::StringANSI(dd.pNpcAttacker->attribute[NPC_ATR_DEXTERITY] ? zSTRING(dd.pNpcAttacker->attribute[NPC_ATR_DEXTERITY]) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("PostReceiverProtection: ")).StdPrint(); Union::StringANSI(self->protection[protectionIndex] ? zSTRING(self->protection[protectionIndex]) : zSTRING("None result")).StdPrintLine();
+	}*/
+
+
+	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
+
+	oCNpc* attackerNpc = nullptr;
+	oCNpc* receiverNpc = nullptr;
+
+	int damageIndex;
+	int protectionIndex;
+
+	int customMinimalDamage = -1;
+	int customProtection = -2;
+	int customPureDamage = -1;
+	int customTotalDamage = -1;
+
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd);
 	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0072F280, 0x0076DBC0, 0x0077D390, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd)
 	{
-		int savedProtection = self->protection[dd.enuModeDamage];
+		gDamageDescriptor = &dd;
 
-		int customProtection = -2;
-		int customDamage = -1;
+		attackerNpc = dd.pNpcAttacker;
+		receiverNpc = self;
 
-		Union::StringANSI(dd.fDamageTotal ? zSTRING(dd.fDamageTotal) : zSTRING("None result")).StdPrintLine();
+		damageIndex = GetDamageIndex(reinterpret_cast<oEDamageType&>(dd.enuModeDamage)); // damage index by damageType
+		protectionIndex = GetProtectionIndex(reinterpret_cast<oEDamageType&>(dd.enuModeDamage)); // protection index by damageType
 
-		if (dd.pNpcAttacker != nullptr && self != nullptr)
+		// protection //
+		int savedReceiverProtection = receiverNpc->protection[protectionIndex];
+
+		if (attackerNpc != nullptr && receiverNpc != nullptr)
 		{
-			customProtection = Call_PullCustomProtection(dd.pNpcAttacker->GetInstance(), self->GetInstance(), dd.enuModeDamage, self->protection[dd.enuModeDamage], dd.nSpellID);
-			customDamage = Call_PullCustomDamage(dd.pNpcAttacker->GetInstance(), self->GetInstance(), dd.enuModeDamage, dd.fDamageTotal, dd.nSpellID);
+			customProtection = Call_PullCustomProtection(attackerNpc->GetInstance(), receiverNpc->GetInstance(), damageIndex, savedReceiverProtection, dd.nSpellID);
 		};
 
-		if (self != nullptr)
+		if (customProtection >= -1)
 		{
-			if (customProtection >= -1)
+			if (receiverNpc != nullptr)
 			{
-				self->protection[dd.enuModeDamage] = customProtection;
-			}
-			if (customDamage >= 0)
-			{
-				dd.fDamageTotal = customDamage;
+				receiverNpc->protection[protectionIndex] = customProtection;
 			}
 		}
+		// protection //
+
+		Union::StringANSI(zSTRING("Protection: ")).StdPrint(); Union::StringANSI(savedReceiverProtection ? zSTRING(savedReceiverProtection) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("enuModeDamage: ")).StdPrint(); Union::StringANSI(dd.enuModeDamage ? zSTRING(dd.enuModeDamage) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("damageIndex: ")).StdPrint(); Union::StringANSI(damageIndex ? zSTRING(damageIndex) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("fDamageTotal: ")).StdPrint(); Union::StringANSI(dd.fDamageTotal ? zSTRING(dd.fDamageTotal) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("AryDamage: ")).StdPrint(); Union::StringANSI(zSTRING(dd.aryDamage[damageIndex])).StdPrintLine();
+
+		if (attackerNpc != nullptr && receiverNpc != nullptr)
+		{
+			customPureDamage = Call_PullCustomDamage(attackerNpc->GetInstance(), receiverNpc->GetInstance(), 0, damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
+		};
+
+		Union::StringANSI(zSTRING("AryDamage2: ")).StdPrint(); Union::StringANSI(zSTRING(dd.aryDamage[damageIndex])).StdPrintLine();
+
+		if (customPureDamage >= 0)
+		{
+			dd.aryDamage[damageIndex] = customPureDamage;
+			dd.fDamageTotal = customPureDamage;
+
+			Union::StringANSI(zSTRING("DamageTotal: ")).StdPrint(); Union::StringANSI(zSTRING(dd.fDamageTotal)).StdPrintLine();
+			Union::StringANSI(zSTRING("AryDamage3: ")).StdPrint(); Union::StringANSI(zSTRING(dd.aryDamage[damageIndex])).StdPrintLine();
+		}
+
+		Union::StringANSI(zSTRING("ProcessedCustomPureDamage: ")).StdPrint(); Union::StringANSI(customPureDamage >= -10 ? zSTRING(customPureDamage) : zSTRING("None result")).StdPrintLine();
+		Union::StringANSI(zSTRING("ProcessedPureDamage: ")).StdPrint(); Union::StringANSI(zSTRING(dd.aryDamage[damageIndex])).StdPrintLine();
+		Union::StringANSI(zSTRING("ProcessedProtection: ")).StdPrint(); Union::StringANSI(receiverNpc->protection[protectionIndex] >= -1 ? zSTRING(receiverNpc->protection[protectionIndex]) : zSTRING("None result")).StdPrintLine();
 
 		Hook_oCNpc_OnDamage_Hit(self, vtable, dd);
 
-		self->protection[dd.enuModeDamage] = savedProtection;
+		receiverNpc->protection[protectionIndex] = savedReceiverProtection;
+
+		// reseting the values
+		gDamageDescriptor = nullptr;
+		customMinimalDamage = -1;
+		customTotalDamage = -1;
+		customPureDamage = -1;
+		customProtection = -2;
+	}
+
+	void __fastcall partialHookProc(Union::Registers& reg);
+	auto partialHook = CreatePartialHook((void*)0x0066CA6B, &partialHookProc);
+	void __fastcall partialHookProc(Union::Registers& reg)
+	{
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		Union::StringANSI(zSTRING("LAST PROCEDURE NEXT::::::: ")).StdPrintLine();
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+
+		if (attackerNpc != nullptr && receiverNpc != nullptr && gDamageDescriptor != nullptr)
+		{
+			customTotalDamage = Call_PullCustomDamage(attackerNpc->GetInstance(), receiverNpc->GetInstance(), 1, damageIndex, gDamageDescriptor->fDamageTotal, gDamageDescriptor->nSpellID);
+		};
+
+		if (customTotalDamage >= 0)
+		{
+			Union::StringANSI(zSTRING("ProcessedDamageTotal: ")).StdPrint(); Union::StringANSI(customTotalDamage >= -1 ? zSTRING(customTotalDamage) : zSTRING("None result")).StdPrintLine();
+
+			reg.edi = customTotalDamage;
+		}
+
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+	}
+
+	void __fastcall partialHookProc1(Union::Registers& reg);
+	auto partialHook1 = CreatePartialHook((void*)0x0066CAA0, &partialHookProc1);
+	void __fastcall partialHookProc1(Union::Registers& reg)
+	{
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		Union::StringANSI(zSTRING("MIN PROCEDURE NEXT::::::: ")).StdPrintLine();
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+
+		if (attackerNpc != nullptr && receiverNpc != nullptr && gDamageDescriptor != nullptr)
+		{
+			customMinimalDamage = Call_PullMinimalDamage(attackerNpc->GetInstance(), receiverNpc->GetInstance(), damageIndex, gDamageDescriptor->nSpellID);
+		}
+
+		if (customMinimalDamage >= 0)
+		{
+			Union::StringANSI(zSTRING("customMinimalDamage: ")).StdPrint(); Union::StringANSI(customMinimalDamage >= -2 ? zSTRING(customMinimalDamage) : zSTRING("none")).StdPrintLine();
+
+			reg.eax = customMinimalDamage;
+		}
+
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
 	}
 
 	/*void __fastcall zCMenu_Render(zCMenu* self, void* vtable);
