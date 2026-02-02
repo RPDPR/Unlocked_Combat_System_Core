@@ -246,7 +246,7 @@ namespace GOTHIC_NAMESPACE
 	int __cdecl Concat10Strings()
 	{
 		static zSTRING result; result.Clear();
-		int stringsQuantity = 5;
+		int stringsQuantity = 10;
 
 		zSTRING i;
 		zSTRING ii;
