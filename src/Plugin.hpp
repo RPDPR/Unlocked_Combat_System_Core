@@ -3,17 +3,17 @@
 
 namespace GOTHIC_NAMESPACE
 {
-	void Game_Loop()
+	/* void Game_Loop()
 	{
 
-	}
+	} */
 
-	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg);
+	/* void __fastcall oCGame_MainWorld_Render(Union::Registers& reg);
 	auto Partial_zCWorld_Render = Union::CreatePartialHook(reinterpret_cast<void*>(zSwitch(0x0063DC76, 0x0066498B, 0x0066BA76, 0x006C87EB)), &oCGame_MainWorld_Render);
 	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg)
 	{
 		Game_Loop();
-	}
+	} */
 
 
 	int GetDamageIndex(oETypeDamage damageType)
