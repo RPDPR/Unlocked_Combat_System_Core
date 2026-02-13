@@ -55,21 +55,31 @@ namespace GOTHIC_NAMESPACE
 
 	float Call_PullMultiplier(int senderNpc_ID, int receiverNpc_ID, int damageType, int isCrit)
 	{
-		int funcIndex = parser->GetIndex(zSTRING("PullMultiplier")); if (funcIndex < 0) return -1;
+		int funcIndex = parser->GetIndex(zSTRING("PullMultiplier")); if (funcIndex < 0) return -1.0f;
 
+		zCPar_Symbol* sym = parser->GetSymbol(funcIndex); if (sym == nullptr) return -1.0f;
 		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, isCrit);
-		float dataValue = *reinterpret_cast<float*>(pRet);
-
-		if (dataValue < 0) return -1;
+		
+		float dataValue = -1.0f; 
+		
+		if (sym->GetOffset() == zPAR_TYPE_FLOAT)
+		{
+			dataValue = *reinterpret_cast<float*>(pRet);
+		} else if (sym->GetOffset() == zPAR_TYPE_INT)
+		{
+			dataValue = float(*reinterpret_cast<int*>(pRet)) / 1000.0f;
+		}
+		
+		if (dataValue < 0.0f) return -1.0f;
 
 		return dataValue;
 	}
 
-	int Call_PullMinimalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int spellID)
+	int Call_PullMinimalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialMinimalDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullMinimalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, spellID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialMinimalDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -77,11 +87,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullPureDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialDamage, int spellID)
+	int Call_PullPureDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialPureDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullPureDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialPureDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -89,11 +99,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullTotalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialDamage, int spellID)
+	int Call_PullTotalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialTotalDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullTotalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialTotalDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -241,7 +251,7 @@ namespace GOTHIC_NAMESPACE
 	auto Hook_oCNpc_OnDamage_Hit_GetMinimalDamage = CreatePartialHook((void*)0x0066CAA0, &oCNpc_OnDamage_Hit_GetMinimalDamage);
 	void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg)
 	{
-		minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, gDamageDescriptor->nSpellID);
+		minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, reg.eax, gDamageDescriptor->nSpellID);
 
 		if (minimalDamage >= 0)
 		{
@@ -278,7 +288,7 @@ namespace GOTHIC_NAMESPACE
 
 	// EXTERNAL FUNCTIONS /////
 
-	int __cdecl Hlp_MultiplyInt()
+	int __cdecl Hlp_MultInt()
 	{
 		int value;
 		float x;
@@ -287,6 +297,19 @@ namespace GOTHIC_NAMESPACE
 		parser->GetParameter(value);
 
 		parser->SetReturn(int(value * x));
+
+		return 0;
+	}
+
+	int __cdecl Hlp_MultInt_F()
+	{
+		int value;
+		float x;
+
+		parser->GetParameter(x);
+		parser->GetParameter(value);
+
+		parser->SetReturn(float(value * x));
 
 		return 0;
 	}
@@ -347,7 +370,9 @@ namespace GOTHIC_NAMESPACE
 
 	void Game_DefineExternals()
 	{
-		parser->DefineExternal("Hlp_MultiplyInt", Hlp_MultiplyInt, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);
+		parser->DefineExternal("Hlp_MultInt", Hlp_MultInt, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);
+
+		parser->DefineExternal("Hlp_MultInt_F", Hlp_MultInt_F, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);
 
 		parser->DefineExternal("Hlp_IsItemEquipped", Hlp_IsItemEquipped, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 
