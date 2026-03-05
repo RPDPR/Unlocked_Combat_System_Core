@@ -3,19 +3,6 @@
 
 namespace GOTHIC_NAMESPACE
 {
-	/* void Game_Loop()
-	{
-
-	} */
-
-	/* void __fastcall oCGame_MainWorld_Render(Union::Registers& reg);
-	auto Partial_zCWorld_Render = Union::CreatePartialHook(reinterpret_cast<void*>(zSwitch(0x0063DC76, 0x0066498B, 0x0066BA76, 0x006C87EB)), &oCGame_MainWorld_Render);
-	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg)
-	{
-		Game_Loop();
-	} */
-
-
 	int GetDamageIndex(oETypeDamage damageType)
 	{
 		if (damageType == oEDamageType_Barrier) return oEDamageIndex_Barrier;
@@ -165,7 +152,7 @@ namespace GOTHIC_NAMESPACE
 	//0x00666610 public: void __thiscall oCNpc::OnDamage_Hit(struct oCNpc::oSDamageDescriptor&)
 
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd);
-	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0072F280, 0x0076DBC0, 0x0077D390, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
+	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x00731410, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd)
 	{
 		gDamageDescriptor = &dd;
@@ -173,7 +160,7 @@ namespace GOTHIC_NAMESPACE
 		attackerInstance = dd.pNpcAttacker != nullptr ? dd.pNpcAttacker->GetInstance() : -1;
 		receiverInstance = self != nullptr ? self->GetInstance() : -1;
 
-		damageIndex = GetDamageIndex(reinterpret_cast<oEDamageType&>(dd.enuModeDamage)); // damage index by damageType
+		damageIndex = GetDamageIndex((oEDamageType)dd.enuModeDamage); // damage index by damageType
 
 		pureDamage = Call_PullPureDamage(attackerInstance, receiverInstance, damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
 
@@ -211,78 +198,196 @@ namespace GOTHIC_NAMESPACE
 	}
 
 	void __fastcall oCNpc_OnDamage_Hit_GetProtection(Union::Registers& reg);
-	auto Hook_oCNpc_OnDamage_Hit_GetProtection = CreatePartialHook((void*)0x0066B733, &oCNpc_OnDamage_Hit_GetProtection);
+	auto Hook_oCNpc_OnDamage_Hit_GetProtection = CreatePartialHook((void*)zSwitch(0x00736510, 0x0066B733), &oCNpc_OnDamage_Hit_GetProtection);
 	void __fastcall oCNpc_OnDamage_Hit_GetProtection(Union::Registers& reg)
 	{
 		protection = Call_PullProtection(attackerInstance, receiverInstance, damageIndex, reg.eax, gDamageDescriptor->nSpellID);
 
 		if (protection != -1 && protection >= 0)
 		{
-			reg.eax = protection;
+			#if ENGINE == Engine_G1
+
+				reg.eax = protection;
+
+			#elif ENGINE == Engine_G2A
+
+				reg.eax = protection;
+
+			#endif
 		}
 	}
 
-	void __fastcall oCNpc_OnDamage_Hit_GetTotalDamage(Union::Registers& reg);
-	auto Hook_oCNpc_OnDamage_Hit_GetTotalDamage = CreatePartialHook((void*)0x0066CA6B, &oCNpc_OnDamage_Hit_GetTotalDamage);
-	void __fastcall oCNpc_OnDamage_Hit_GetTotalDamage(Union::Registers& reg)
-	{
-		int& resultTotalDamage = *(int*)(reg.esp + 0xFC);
-		isCrit = *(int*)(reg.esp + 0x11C);
+	#if ENGINE == Engine_G1
 
-		totalDamage = Call_PullTotalDamage(attackerInstance, receiverInstance, damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
-
-		if (totalDamage >= 0)
+		void __fastcall oCNpc_OnDamage_Hit_GetIsCrit(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_GetIsCrit = CreatePartialHook((void*)0x007328B7, &oCNpc_OnDamage_Hit_GetIsCrit);
+		void __fastcall oCNpc_OnDamage_Hit_GetIsCrit(Union::Registers& reg)
 		{
-			resultTotalDamage = totalDamage;
-			reg.edi = totalDamage;
-		}
-
-		multiplier = Call_PullMultiplier(attackerInstance, receiverInstance, damageIndex, isCrit);
-
-		if (multiplier >= 0.0 && ((!isCrit && multiplier != 0.1) || (isCrit && multiplier != 1.0)))
-		{
-			reg.edi = (int)((float)resultTotalDamage * multiplier); //reg.edi -> also totalDamage
-
-			reg.eip = (int)0x0066CA8A;
-		}
-	}
-
-	void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg);
-	auto Hook_oCNpc_OnDamage_Hit_GetMinimalDamage = CreatePartialHook((void*)0x0066CAA0, &oCNpc_OnDamage_Hit_GetMinimalDamage);
-	void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg)
-	{
-		minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, reg.eax, gDamageDescriptor->nSpellID);
-
-		if (minimalDamage >= 0)
-		{
-			reg.eax = minimalDamage;
-		}
-	}
-
-	void __fastcall oCNpc_OnDamage_Hit_GetCustomDamage(Union::Registers& reg);
-	auto Hook_oCNpc_OnDamage_Hit_GetCustomDamage = CreatePartialHook((void*)0x0066CAC7, &oCNpc_OnDamage_Hit_GetCustomDamage);
-	void __fastcall oCNpc_OnDamage_Hit_GetCustomDamage(Union::Registers& reg)
-	{
-		customDamageIndex = Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
-
-		if (customDamageIndex >= 0)
-		{
-			int customDamage = Call_PullCustomDamage(attackerInstance, receiverInstance, customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
-
-			if (customDamage >= 0)
+			if ((int)(reg.edi) <= (int)(reg.ebp))
+			{ 
+				isCrit = 1;
+			}
+			else 
 			{
-				reg.edi = customDamage;
+				isCrit = 0;
+			}
+		}
+
+		void __fastcall oCNpc_OnDamage_Hit_ActivateMultiplierLoop(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_ActivateMultiplierLoop = CreatePartialHook((void*)0x00733589, &oCNpc_OnDamage_Hit_ActivateMultiplierLoop);
+		void __fastcall oCNpc_OnDamage_Hit_ActivateMultiplierLoop(Union::Registers& reg)
+		{
+			reg.eip = (int)0x00733596;
+		}
+
+		void __fastcall oCNpc_OnDamage_Hit_GetMultiplier(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_GetMultiplier = CreatePartialHook((void*)0x00733BC9, &oCNpc_OnDamage_Hit_GetMultiplier);
+		void __fastcall oCNpc_OnDamage_Hit_GetMultiplier(Union::Registers& reg)
+		{
+			float& previousMultiplier = *(float*)(reg.eax + 0x4C);
+
+			multiplier = Call_PullMultiplier(attackerInstance, receiverInstance, reg.ebp, isCrit);
+
+			if (multiplier >= 0.0 && multiplier != previousMultiplier)
+			{
+				reg.eax = (int)((float)reg.edx * multiplier);
+
+				reg.eip = (int)0x00733BEA;
+			}
+			
+		}
+
+		void __fastcall oCNpc_OnDamage_Hit_SaveTotalDamage(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_SaveTotalDamage = CreatePartialHook((void*)0x0073774A, &oCNpc_OnDamage_Hit_SaveTotalDamage);
+		void __fastcall oCNpc_OnDamage_Hit_SaveTotalDamage(Union::Registers& reg)
+		{
+			totalDamage = *(int*)(reg.esp + 0x108); // saving total damage
+
+			reg.eip = (int)0x0073775F;
+		}
+
+		void __fastcall oCNpc_OnDamage_Hit_GetTotalDamage(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_GetTotalDamage = CreatePartialHook((void*)0x007377E1, &oCNpc_OnDamage_Hit_GetTotalDamage);
+		void __fastcall oCNpc_OnDamage_Hit_GetTotalDamage(Union::Registers& reg)
+		{
+			int initialTotalDamage = totalDamage > 0 ? totalDamage : 0;
+			int initialMinimalDamage = reg.eax > 0 ? reg.eax : 0;
+
+			totalDamage = Call_PullTotalDamage(attackerInstance, receiverInstance, damageIndex, initialTotalDamage, gDamageDescriptor->nSpellID);
+
+			if (totalDamage >= 0)
+			{
+				reg.eax = totalDamage;
 			}
 			else
 			{
-				reg.edi = 0;
+				reg.eax = initialTotalDamage;
+			}
+
+			minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, initialMinimalDamage, gDamageDescriptor->nSpellID);
+
+			if (minimalDamage >= 0 && reg.eax < minimalDamage)
+			{
+				reg.eax = minimalDamage;
+			}
+			else if (reg.eax < initialMinimalDamage)
+			{
+				reg.eax = initialMinimalDamage;
 			}
 		}
 
-		if (protection == -1)
+	#elif ENGINE == Engine_G2A
+
+		void __fastcall oCNpc_OnDamage_Hit_GetTotalDamage(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_GetTotalDamage = CreatePartialHook((void*)0x0066CA6B, &oCNpc_OnDamage_Hit_GetTotalDamage);
+		void __fastcall oCNpc_OnDamage_Hit_GetTotalDamage(Union::Registers& reg)
 		{
-			reg.edi = 0;
-		};
+			int& resultTotalDamage = *(int*)(reg.esp + 0xFC);
+			isCrit = *(int*)(reg.esp + 0x11C);
+
+			totalDamage = Call_PullTotalDamage(attackerInstance, receiverInstance, damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
+
+			if (totalDamage >= 0)
+			{
+				resultTotalDamage = totalDamage;
+				reg.edi = totalDamage;
+			}
+
+			multiplier = Call_PullMultiplier(attackerInstance, receiverInstance, damageIndex, isCrit);
+
+			if (multiplier >= 0.0 && ((!isCrit && multiplier != 0.1) || (isCrit && multiplier != 1.0)))
+			{
+				reg.edi = (int)((float)resultTotalDamage * multiplier); //reg.edi -> also totalDamage
+
+				reg.eip = (int)0x0066CA8A;
+			}
+		}
+
+		void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg);
+		auto Hook_oCNpc_OnDamage_Hit_GetMinimalDamage = CreatePartialHook((void*)0x0066CAA0, &oCNpc_OnDamage_Hit_GetMinimalDamage);
+		void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg)
+		{
+			minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, reg.eax, gDamageDescriptor->nSpellID);
+
+			if (minimalDamage >= 0)
+			{
+				reg.eax = minimalDamage;
+			}
+		}
+
+	#endif
+
+	void __fastcall oCNpc_OnDamage_Hit_GetCustomDamage(Union::Registers& reg);
+	auto Hook_oCNpc_OnDamage_Hit_GetCustomDamage = CreatePartialHook((void*)zSwitch(0x007377E1, 0x0066CAB2), &oCNpc_OnDamage_Hit_GetCustomDamage);
+	void __fastcall oCNpc_OnDamage_Hit_GetCustomDamage(Union::Registers& reg)
+	{
+		#if ENGINE == Engine_G1
+			
+			if (protection == -1)
+			{
+				reg.eax = 0;
+			};
+			
+			customDamageIndex = Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+
+			if (customDamageIndex >= 0)
+			{
+				int customDamage = Call_PullCustomDamage(attackerInstance, receiverInstance, customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
+
+				if (customDamage >= 0)
+				{
+					reg.eax = customDamage;
+				}
+				else
+				{
+					reg.eax = 0;
+				}
+			}
+
+		#elif ENGINE == Engine_G2A
+			
+			if (protection == -1)
+			{
+				reg.edi = 0;
+			};
+			
+			customDamageIndex = Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			
+			if (customDamageIndex >= 0)
+			{
+				int customDamage = Call_PullCustomDamage(attackerInstance, receiverInstance, customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
+
+				if (customDamage >= 0)
+				{
+					reg.edi = customDamage;
+				}
+				else
+				{
+					reg.edi = 0;
+				}
+			}
+
+		#endif
 	}
 
 
@@ -316,11 +421,9 @@ namespace GOTHIC_NAMESPACE
 
 	int __cdecl Hlp_GetItemInstanceID()
 	{
-		int itemInstanceID;
+		oCItem* item = (oCItem*)(parser->GetInstance());
 
-		oCItem* item = (oCItem*)(parser->GetInstanceAndIndex(itemInstanceID));
-
-		int result = int(item != nullptr ? item->GetInstance() : itemInstanceID >= 0 ? itemInstanceID : -1);
+		int result = int(item != nullptr ? item->GetInstance() : -1);
 
 		parser->SetReturn(result);
 
@@ -329,11 +432,8 @@ namespace GOTHIC_NAMESPACE
 
 	int __cdecl Hlp_IsItemEquipped()
 	{
-		int npcInstanceID;
-		int itemInstanceID;
-
-		oCNpc* npc = (oCNpc*)(parser->GetInstanceAndIndex(npcInstanceID));
-		oCItem* item = (oCItem*)(parser->GetInstanceAndIndex(itemInstanceID));
+		oCNpc* npc = (oCNpc*)(parser->GetInstance());
+		oCItem* item = (oCItem*)(parser->GetInstance());
 
 		if (npc != nullptr)
 		{
@@ -341,7 +441,7 @@ namespace GOTHIC_NAMESPACE
 			{
 				oCItem* currentItem = npc->inventory2.contents->Get(i);
 
-				if (currentItem->GetInstance() == itemInstanceID && currentItem->HasFlag(ITM_FLAG_ACTIVE))
+				if (currentItem->GetInstance() == item->GetInstance() && currentItem->HasFlag(ITM_FLAG_ACTIVE))
 				{
 					parser->SetReturn(1);
 
@@ -357,9 +457,7 @@ namespace GOTHIC_NAMESPACE
 
 	int __cdecl Npc_GetLastHitDT()
 	{
-		int npcInstanceID;
-
-		oCNpc* npc = (oCNpc*)(parser->GetInstanceAndIndex(npcInstanceID));
+		oCNpc* npc = (oCNpc*)(parser->GetInstance());
 
 		int result = int(npc != nullptr ? dtManager.GetLastHitDT(npc) : -1);
 
