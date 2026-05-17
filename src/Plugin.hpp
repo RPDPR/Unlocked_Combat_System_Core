@@ -3,18 +3,31 @@
 
 namespace GOTHIC_NAMESPACE
 {
-	int GetDamageIndex(oETypeDamage damageType)
+	int GetDamageIndex(oEDamageType damageType)
 	{
 		if (damageType == oEDamageType_Barrier) return oEDamageIndex_Barrier;
-		if (damageType == oEDamageType_Blunt) return oEDamageIndex_Blunt;
-		if (damageType == oEDamageType_Edge) return oEDamageIndex_Edge;
-		if (damageType == oEDamageType_Fire) return oEDamageIndex_Fire;
-		if (damageType == oEDamageType_Fly) return oEDamageIndex_Fly;
-		if (damageType == oEDamageType_Magic) return oEDamageIndex_Magic;
-		if (damageType == oEDamageType_Point) return oEDamageIndex_Point;
-		if (damageType == oEDamageType_Fall) return oEDamageIndex_Fall;
+		if (damageType == oEDamageType_Blunt)   return oEDamageIndex_Blunt;
+		if (damageType == oEDamageType_Edge)    return oEDamageIndex_Edge;
+		if (damageType == oEDamageType_Fire)    return oEDamageIndex_Fire;
+		if (damageType == oEDamageType_Fly)     return oEDamageIndex_Fly;
+		if (damageType == oEDamageType_Magic)   return oEDamageIndex_Magic;
+		if (damageType == oEDamageType_Point)   return oEDamageIndex_Point;
+		if (damageType == oEDamageType_Fall)    return oEDamageIndex_Fall;
 
 		return -1;
+	}
+	oEDamageType GetDamageType(oEDamageIndex damageIndex)
+	{
+		if (damageIndex == oEDamageIndex_Barrier) return oEDamageType_Barrier;
+		if (damageIndex == oEDamageIndex_Blunt)   return oEDamageType_Blunt;
+		if (damageIndex == oEDamageIndex_Edge)    return oEDamageType_Edge;
+		if (damageIndex == oEDamageIndex_Fire)    return oEDamageType_Fire;
+		if (damageIndex == oEDamageIndex_Fly)     return oEDamageType_Fly;
+		if (damageIndex == oEDamageIndex_Magic)   return oEDamageType_Magic;
+		if (damageIndex == oEDamageIndex_Point)   return oEDamageType_Point;
+		if (damageIndex == oEDamageIndex_Fall)    return oEDamageType_Fall;
+
+		return oEDamageType_Unknown;
 	}
 
 	int Call_PullCustomDamageType(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
@@ -24,7 +37,7 @@ namespace GOTHIC_NAMESPACE
 		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, itemInstance_ID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
-		if (dataValue < 0) return -1;
+		if (dataValue < 8) return -1;
 
 		return dataValue;
 	}
@@ -135,6 +148,8 @@ namespace GOTHIC_NAMESPACE
 	NpcDTManager dtManager;
 
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
+	static bool gOnDamageIsRunning = false;
+	static int gID = -1;
 
 	int attackerInstance = -1;
 	int receiverInstance = -1;
@@ -321,6 +336,16 @@ namespace GOTHIC_NAMESPACE
 
 				reg.eip = (int)0x0066CA8A;
 			}
+
+			gID++;
+
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
+			Union::StringANSI(zSTRING("ID: ")).StdPrint(); 
+			Union::StringANSI(gID >= 0 ? zSTRING(gID) : zSTRING("nothing")).StdPrintLine();
+			Union::StringANSI(zSTRING("ISRN:: ")).StdPrint();
+			Union::StringANSI(gOnDamageIsRunning >= 0 ? zSTRING(gOnDamageIsRunning) : zSTRING("nothing")).StdPrintLine();
+			Union::StringANSI(zSTRING("TD::: ")).StdPrint();
+			Union::StringANSI(zSTRING(reg.edi >= 0 ? reg.edi : zSTRING("nothing"))).StdPrintLine(); Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
 
 		void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg);
@@ -371,9 +396,9 @@ namespace GOTHIC_NAMESPACE
 				reg.edi = 0;
 			};
 			
-			customDamageIndex = Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customDamageIndex = customDamageIndex >= 8 ? customDamageIndex : Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
 			
-			if (customDamageIndex >= 0)
+			if (customDamageIndex >= 8)
 			{
 				int customDamage = Call_PullCustomDamage(attackerInstance, receiverInstance, customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
 
@@ -466,8 +491,117 @@ namespace GOTHIC_NAMESPACE
 		return 0;
 	}
 
+	int __cdecl UCS_ApplyDamage()
+	{
+		int damageIndex;
+		int spellID;
+		int damage;
+		int dontKill;
+
+		parser->GetParameter(dontKill);
+		parser->GetParameter(damage);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		if (!gOnDamageIsRunning && damageReceiver != nullptr && damageSender != nullptr && damageIndex >= 0 && spellID >= 0 && damage >= 0 && dontKill >= 0)
+		{
+			oCNpc::oSDamageDescriptor dd{};
+			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
+
+			dd.pVobAttacker = damageSender;
+			dd.pNpcAttacker = damageSender;
+			dd.pVobHit = damageReceiver;
+			dd.enuModeDamage = GetDamageType(resultDamageIndex);
+			dd.nSpellID = spellID;
+			dd.nSpellCat = 2;
+			dd.aryDamage[resultDamageIndex] = damage;
+			dd.fDamageTotal = damage;
+			dd.bDamageDontKill = dontKill;
+
+			dd.fDamageMultiplier = 1.0f;
+			dd.bOnce = 1;
+			dd.bFinished = 1;
+			dd.dwFieldsValid = 0;
+
+			gOnDamageIsRunning = true;
+
+			damageReceiver->OnDamage(dd);
+
+			Union::StringANSI(zSTRING("Call THIS FUNC")).StdPrintLine();
+
+			Union::StringANSI(zSTRING("Attacker: ")).StdPrint(); Union::StringANSI(zSTRING(dd.pNpcAttacker != nullptr ? dd.pNpcAttacker->GetName(0) : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("Receiver: ")).StdPrint(); Union::StringANSI(zSTRING(damageReceiver != nullptr ? damageReceiver->GetName(0) : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("dt: ")).StdPrint(); Union::StringANSI(zSTRING(dd.enuModeDamage >= 0 ? dd.enuModeDamage : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("aryDamage: ")).StdPrint(); Union::StringANSI(zSTRING(resultDamageIndex && dd.aryDamage[resultDamageIndex] >= 0 ? dd.aryDamage[resultDamageIndex] : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("bDamageDontKill: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bDamageDontKill >= 0 ? dd.bDamageDontKill : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("bIsUnconscious: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsUnconscious >= 0 ? dd.bIsUnconscious : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("bIsDead: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsDead >= 0 ? dd.bIsDead : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("dwFieldsValid: ")).StdPrint(); Union::StringANSI(dd.dwFieldsValid >= 0 ? zSTRING(dd.dwFieldsValid) : zSTRING("nothing")).StdPrintLine();
+		
+			gOnDamageIsRunning = false;
+		}
+
+		return 0;
+	};
+
+	int __cdecl UCS_ApplyLoopDamage()
+	{
+		int damageIndex;
+		int spellID;
+		int damage;
+		int dontKill;
+
+		parser->GetParameter(dontKill);
+		parser->GetParameter(damage);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		if (damageReceiver != nullptr && damageSender != nullptr && damageIndex >= 0 && spellID >= 0 && damage >= 0 && dontKill >= 0)
+		{
+			oCNpc::oSDamageDescriptor dd{};
+			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
+
+			dd.pNpcAttacker = damageSender;
+			dd.enuModeDamage = GetDamageType(resultDamageIndex);
+			dd.nSpellID = spellID;
+			dd.aryDamage[resultDamageIndex] = damage;
+			dd.fDamageTotal = damage;
+			dd.bDamageDontKill = dontKill;
+
+			dd.fDamageMultiplier = 1.0f;
+			//dd.bIsUnconscious = damageReceiver->IsUnconscious();
+			dd.bIsDead = damageReceiver->IsDead();
+			dd.bOnce = 1;
+			dd.dwFieldsValid = 0x38F;
+
+			//damageReceiver->OnDamage(dd);
+
+			Union::StringANSI(zSTRING("Call THIS FUNC")).StdPrintLine();
+
+			Union::StringANSI(zSTRING("Attacker: ")).StdPrint(); Union::StringANSI(zSTRING(dd.pNpcAttacker != nullptr ? dd.pNpcAttacker->GetName(0) : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("Receiver: ")).StdPrint(); Union::StringANSI(zSTRING(damageReceiver != nullptr ? damageReceiver->GetName(0) : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("dt: ")).StdPrint(); Union::StringANSI(zSTRING(dd.enuModeDamage >= 0 ? dd.enuModeDamage : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("aryDamage: ")).StdPrint(); Union::StringANSI(zSTRING(resultDamageIndex && dd.aryDamage[resultDamageIndex] >= 0 ? dd.aryDamage[resultDamageIndex] : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("bDamageDontKill: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bDamageDontKill >= 0 ? dd.bDamageDontKill : zSTRING("nothing"))).StdPrintLine();
+			//Union::StringANSI(zSTRING("bIsUnconscious: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsUnconscious >= 0 ? dd.bIsUnconscious : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("bIsDead: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsDead >= 0 ? dd.bIsDead : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("dwFieldsValid: ")).StdPrint(); Union::StringANSI(dd.dwFieldsValid >= 0 ? zSTRING(dd.dwFieldsValid) : zSTRING("nothing")).StdPrintLine();
+		}
+
+		return 0;
+	};
+
+
 	void Game_DefineExternals()
 	{
+		parser->DefineExternal("UCS_ApplyDamage", UCS_ApplyDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+
 		parser->DefineExternal("Hlp_MultInt", Hlp_MultInt, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);
 
 		parser->DefineExternal("Hlp_MultInt_F", Hlp_MultInt_F, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);
