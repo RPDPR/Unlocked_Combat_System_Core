@@ -30,6 +30,14 @@ namespace GOTHIC_NAMESPACE
 		return oEDamageType_Unknown;
 	}
 
+	void Call_UCS_Init(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
+	{
+		int funcIndex = parser->GetIndex(zSTRING("UCS_Init")); if (funcIndex < 0) return;
+
+		parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, itemInstance_ID);
+
+		return;
+	}
 	int Call_PullCustomDamageType(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamageType")); if (funcIndex < 0) return -1;
@@ -147,6 +155,8 @@ namespace GOTHIC_NAMESPACE
 
 	NpcDTManager dtManager;
 
+
+	// UCS System /////
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
 	static bool gOnDamageIsRunning = false;
 	static int gID = -1;
@@ -163,8 +173,6 @@ namespace GOTHIC_NAMESPACE
 	int protection = -2;
 	int pureDamage = -1;
 	int totalDamage = -1;
-
-	//0x00666610 public: void __thiscall oCNpc::OnDamage_Hit(struct oCNpc::oSDamageDescriptor&)
 
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd);
 	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x00731410, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
@@ -562,25 +570,30 @@ namespace GOTHIC_NAMESPACE
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		if (damageReceiver != nullptr && damageSender != nullptr && damageIndex >= 0 && spellID >= 0 && damage >= 0 && dontKill >= 0)
+		if (!gOnDamageIsRunning && damageReceiver != nullptr && damageSender != nullptr && damageIndex >= 0 && spellID >= 0 && damage >= 0 && dontKill >= 0)
 		{
 			oCNpc::oSDamageDescriptor dd{};
 			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
+			dd.pVobAttacker = damageSender;
 			dd.pNpcAttacker = damageSender;
+			dd.pVobHit = damageReceiver;
 			dd.enuModeDamage = GetDamageType(resultDamageIndex);
 			dd.nSpellID = spellID;
+			dd.nSpellCat = 2;
 			dd.aryDamage[resultDamageIndex] = damage;
 			dd.fDamageTotal = damage;
 			dd.bDamageDontKill = dontKill;
 
 			dd.fDamageMultiplier = 1.0f;
-			//dd.bIsUnconscious = damageReceiver->IsUnconscious();
-			dd.bIsDead = damageReceiver->IsDead();
-			dd.bOnce = 1;
-			dd.dwFieldsValid = 0x38F;
+			dd.bOnce = 0;
+			dd.
+			dd.bFinished = 1;
+			dd.dwFieldsValid = 0;
 
-			//damageReceiver->OnDamage(dd);
+			gOnDamageIsRunning = true;
+
+			damageReceiver->OnDamage(dd);
 
 			Union::StringANSI(zSTRING("Call THIS FUNC")).StdPrintLine();
 
@@ -589,9 +602,11 @@ namespace GOTHIC_NAMESPACE
 			Union::StringANSI(zSTRING("dt: ")).StdPrint(); Union::StringANSI(zSTRING(dd.enuModeDamage >= 0 ? dd.enuModeDamage : zSTRING("nothing"))).StdPrintLine();
 			Union::StringANSI(zSTRING("aryDamage: ")).StdPrint(); Union::StringANSI(zSTRING(resultDamageIndex && dd.aryDamage[resultDamageIndex] >= 0 ? dd.aryDamage[resultDamageIndex] : zSTRING("nothing"))).StdPrintLine();
 			Union::StringANSI(zSTRING("bDamageDontKill: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bDamageDontKill >= 0 ? dd.bDamageDontKill : zSTRING("nothing"))).StdPrintLine();
-			//Union::StringANSI(zSTRING("bIsUnconscious: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsUnconscious >= 0 ? dd.bIsUnconscious : zSTRING("nothing"))).StdPrintLine();
+			Union::StringANSI(zSTRING("bIsUnconscious: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsUnconscious >= 0 ? dd.bIsUnconscious : zSTRING("nothing"))).StdPrintLine();
 			Union::StringANSI(zSTRING("bIsDead: ")).StdPrint(); Union::StringANSI(zSTRING(dd.bIsDead >= 0 ? dd.bIsDead : zSTRING("nothing"))).StdPrintLine();
 			Union::StringANSI(zSTRING("dwFieldsValid: ")).StdPrint(); Union::StringANSI(dd.dwFieldsValid >= 0 ? zSTRING(dd.dwFieldsValid) : zSTRING("nothing")).StdPrintLine();
+
+			gOnDamageIsRunning = false;
 		}
 
 		return 0;
@@ -601,6 +616,8 @@ namespace GOTHIC_NAMESPACE
 	void Game_DefineExternals()
 	{
 		parser->DefineExternal("UCS_ApplyDamage", UCS_ApplyDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+
+		parser->DefineExternal("UCS_ApplyLoopDamage", UCS_ApplyLoopDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 
 		parser->DefineExternal("Hlp_MultInt", Hlp_MultInt, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);
 
