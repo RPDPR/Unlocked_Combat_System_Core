@@ -30,14 +30,6 @@ namespace GOTHIC_NAMESPACE
 		return oEDamageType_Unknown;
 	}
 
-	void Call_UCS_Init(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
-	{
-		int funcIndex = parser->GetIndex(zSTRING("UCS_Init")); if (funcIndex < 0) return;
-
-		parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, itemInstance_ID);
-
-		return;
-	}
 	int Call_PullCustomDamageType(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamageType")); if (funcIndex < 0) return -1;
@@ -636,5 +628,28 @@ namespace GOTHIC_NAMESPACE
 	{
 		Hook_oCGame_DefineExternals_Ulfi(self, vtable, parser);
 		Game_DefineExternals();
+	}
+
+	// UCS Initialization /////
+	void Call_UCS_Init()
+	{
+		int funcIndex = parser->GetIndex(zSTRING("UCS_Init")); if (funcIndex < 0) return;
+
+		parser->CallFunc(funcIndex);
+
+		return;
+	}
+
+	void Game_Init()
+	{
+		Call_UCS_Init();
+	}
+
+	void __fastcall oCGame_Init(oCGame* self, void* vtable);
+	auto Hook_oCGame_Init = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x00636F50, 0x006C1060)), &oCGame_Init, Union::HookType::Hook_Detours);
+	void __fastcall oCGame_Init(oCGame* self, void* vtable)
+	{
+		Hook_oCGame_Init(self, vtable);
+		Game_Init();
 	}
 }
