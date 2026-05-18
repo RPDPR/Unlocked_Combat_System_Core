@@ -111,7 +111,7 @@ namespace GOTHIC_NAMESPACE
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		if (damageSender != nullptr && damageReceiver != nullptr && damageIndex >= 0 && spellID >= 0 && damage >= 0 && dontKill >= 0 && loopInterval >= 0 && exCndFuncIndex >= 0)
+		if (damageSender != nullptr && damageReceiver != nullptr && damageIndex >= 0 && spellID >= 0 && damage >= 0 && dontKill >= 0)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
@@ -125,10 +125,7 @@ namespace GOTHIC_NAMESPACE
 			newCtx.spellID = spellID;
 			newCtx.damage = damage;
 			newCtx.dontKill = dontKill;
-			newCtx.loopInterval = loopInterval;
-			newCtx.exCndFuncIndex = exCndFuncIndex;
 
-			newCtx.lastIterTime = -1; //ztimer->totalTime
 			newCtx.isDead = false;
 
 			ctxCollection.push_back(newCtx);
@@ -141,8 +138,6 @@ namespace GOTHIC_NAMESPACE
 		Union::StringANSI(zSTRING("ctxCollection.ds: ")).StdPrint(); Union::StringANSI(zSTRING(ctxCollection[0].damageSender->GetName(0))).StdPrintLine();
 		Union::StringANSI(zSTRING("ctxCollection.dr: ")).StdPrint(); Union::StringANSI(zSTRING(ctxCollection[0].damageReceiver->GetName(0))).StdPrintLine();
 		Union::StringANSI(zSTRING("ctxCollection.didx: ")).StdPrint(); Union::StringANSI(zSTRING(ctxCollection[0].damageIndex)).StdPrintLine();
-		Union::StringANSI(zSTRING("ctxCollection.lit: ")).StdPrint(); Union::StringANSI(zSTRING(ctxCollection[0].lastIterTime)).StdPrintLine();
-		Union::StringANSI(zSTRING("ctxCollection.excndfunc: ")).StdPrint(); Union::StringANSI(zSTRING(ctxCollection[0].exCndFuncIndex)).StdPrintLine();
 
 		return 0;
 	};
