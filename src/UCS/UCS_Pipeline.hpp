@@ -122,9 +122,8 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	// UCS System /////
+	// UCS Pipeline /////
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
-	static bool gOnDamageIsRunning = false;
 	static int gID = -1;
 
 	int attackerInstance = -1;
@@ -317,7 +316,6 @@ namespace GOTHIC_NAMESPACE
 			Union::StringANSI(zSTRING("ID: ")).StdPrint();
 			Union::StringANSI(gID >= 0 ? zSTRING(gID) : zSTRING("nothing")).StdPrintLine();
 			Union::StringANSI(zSTRING("ISRN:: ")).StdPrint();
-			Union::StringANSI(gOnDamageIsRunning >= 0 ? zSTRING(gOnDamageIsRunning) : zSTRING("nothing")).StdPrintLine();
 			Union::StringANSI(zSTRING("TD::: ")).StdPrint();
 			Union::StringANSI(zSTRING(reg.edi >= 0 ? reg.edi : zSTRING("nothing"))).StdPrintLine(); Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}

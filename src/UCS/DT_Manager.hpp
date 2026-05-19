@@ -23,7 +23,7 @@ namespace GOTHIC_NAMESPACE
 		}
 	};
 
-	NpcDTManager dtManager; // -> damage type manager
+	static NpcDTManager dtManager; // -> damage type manager
 
 
 	// EXTERNALS /////
