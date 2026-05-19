@@ -13,7 +13,7 @@ namespace GOTHIC_NAMESPACE
 				int spellID;
 				int damage;
 				int dontKill;
-				int loopInterval;
+				float loopInterval;
 				int exCndFuncIndex;
 				int iterCount;
 			};
@@ -41,7 +41,7 @@ namespace GOTHIC_NAMESPACE
 				int spellID;
 				int damage;
 				int dontKill;
-				int loopInterval;
+				float loopInterval;
 				int exCndFuncIndex;
 				int iterCount;
 
@@ -67,7 +67,7 @@ namespace GOTHIC_NAMESPACE
 				int spellID,
 				int damage,
 				int dontKill,
-				int loopInterval,
+				float loopInterval,
 				int iterCount,
 				int exCndFuncIndex
 			)
@@ -124,7 +124,7 @@ namespace GOTHIC_NAMESPACE
 				int spellID,
 				int damage,
 				int dontKill,
-				int loopInterval = -1,
+				float loopInterval = -1.0f,
 				int iterCount = -1,
 				int exCndFuncIndex = -1
 			)
@@ -133,7 +133,7 @@ namespace GOTHIC_NAMESPACE
 
 				newCtx.id = nextCtxID++;
 
-				newCtx.type = (loopInterval >= 500) && (iterCount >= 0 || exCndFuncIndex >= 0) ? CTX_LOOP : CTX_REGULAR;
+				newCtx.type = (loopInterval >= 500.0f) && (iterCount >= 0 || exCndFuncIndex >= 0) ? CTX_LOOP : CTX_REGULAR;
 
 				newCtx.damageSender = damageSender;
 				newCtx.damageReceiver = damageReceiver;
@@ -220,7 +220,7 @@ namespace GOTHIC_NAMESPACE
 		int spellID;
 		int damage;
 		int dontKill;
-		int loopInterval;
+		float loopInterval;
 		int iterCount;
 		int exCndFuncIndex;
 
@@ -235,7 +235,7 @@ namespace GOTHIC_NAMESPACE
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		if (damageSender != nullptr && damageReceiver != nullptr && damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0 && loopInterval >= 500 && iterCount >= -1 && exCndFuncIndex >= -1)
+		if (damageSender != nullptr && damageReceiver != nullptr && damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0 && loopInterval >= 500.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
@@ -258,7 +258,7 @@ namespace GOTHIC_NAMESPACE
 		int spellID;
 		int damage;
 		int dontKill;
-		int loopInterval;
+		float loopInterval;
 		int iterCount;
 		int exCndFuncIndex;
 
@@ -270,7 +270,7 @@ namespace GOTHIC_NAMESPACE
 		parser->GetParameter(spellID);
 		parser->GetParameter(damageIndex);
 
-		if (damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0 && loopInterval >= 500 && iterCount >= -1 && exCndFuncIndex >= -1)
+		if (damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0 && loopInterval >= 500.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
@@ -291,8 +291,8 @@ namespace GOTHIC_NAMESPACE
 		parser->DefineExternal("UCS_ApplyDamage", UCS_ApplyDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 
 		parser->DefineExternal("UCS_StartLoopDamage", UCS_StartLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_VOID);
-		parser->DefineExternal("UCS_StartLoopDamageEx", UCS_StartLoopDamageEx, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_StartLoopDamageEx", UCS_StartLoopDamageEx, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
 
-		parser->DefineExternal("UCS_CreateLoopDamage", UCS_CreateLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_CreateLoopDamage", UCS_CreateLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
 	}
 }
