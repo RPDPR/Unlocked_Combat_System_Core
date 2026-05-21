@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "UCS/DT_Manager.hpp"
-#include "UCS/UCS_Pipeline.hpp"
-#include "UCS/UCS_ApplyDamage.hpp"
+#include "UCS/Pipeline.hpp"
+#include "UCS/ApplyDamage.hpp"
 #include "UCS/Hlp_Packet.hpp"
 
 namespace GOTHIC_NAMESPACE
