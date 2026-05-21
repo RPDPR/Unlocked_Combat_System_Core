@@ -49,9 +49,9 @@ namespace GOTHIC_NAMESPACE
 		{
 			for (int i = 0; i < npc->inventory2.contents->GetNumInList(); ++i)
 			{
-				oCItem* currentItem = npc->inventory2.contents->Get(i);
+				oCItem* currItem = npc->inventory2.contents->Get(i);
 
-				if (currentItem->GetInstance() == item->GetInstance() && currentItem->HasFlag(ITM_FLAG_ACTIVE))
+				if (currItem->GetInstance() == item->GetInstance() && currItem->HasFlag(ITM_FLAG_ACTIVE))
 				{
 					parser->SetReturn(1);
 

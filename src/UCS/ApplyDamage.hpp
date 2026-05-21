@@ -45,8 +45,8 @@ namespace GOTHIC_NAMESPACE
 				int exCndFuncIndex;
 				int iterCount;
 
-				unsigned long lastIterTime;
-				int currentIter;
+				unsigned long lastIterTime = 0;
+				int currIter = 0;
 				bool isRunning = 0;
 				bool isCompleted = 0;
 			};
@@ -58,6 +58,15 @@ namespace GOTHIC_NAMESPACE
 			int nextCtxID = 0;
 
 		public:
+
+			ctx* getCtx(int ctxID)
+			{
+				auto it = ctxCollection.find(ctxID);
+
+				if (it == ctxCollection.end()) return nullptr;
+
+				return &it->second;
+			}
 
 			int addFX
 			(
@@ -94,15 +103,13 @@ namespace GOTHIC_NAMESPACE
 				oCNpc* damageReceiver
 			)
 			{
-				auto it = ctxCollection.find(outerCtxID);
+				ctx* currCtx = this->getCtx(outerCtxID);
 
-				if (it != ctxCollection.end()) 
-				{
-					ctx& currentCtx = it->second;
+				if (!currCtx) return;
 
-					if (currentCtx.isRunning)
-						return outerCtxID;
-				}
+				if (currCtx->isRunning)
+					return outerCtxID;
+
 
 				ctx newCtx{};
 
@@ -139,15 +146,13 @@ namespace GOTHIC_NAMESPACE
 				int exCndFuncIndex = -1
 			)
 			{
-				auto it = ctxCollection.find(outerCtxID);
+				ctx* currCtx = this->getCtx(outerCtxID);
 
-				if (it != ctxCollection.end())
-				{
-					ctx& currentCtx = it->second;
+				if (!currCtx) return;
 
-					if (currentCtx.isRunning)
-						return outerCtxID;
-				}
+				if (currCtx->isRunning)
+					return outerCtxID;
+
 
 				ctx newCtx{};
 
@@ -170,27 +175,16 @@ namespace GOTHIC_NAMESPACE
 				return newCtx.id;
 			}
 
-			ctx* getCtx(int ctxID)
-			{
-				auto it = ctxCollection.find(ctxID);
-
-				if (it == ctxCollection.end()) return nullptr;
-
-				return &it->second;
-			}
-
 			void runCtx(int ctxID)
 			{
-				auto it = ctxCollection.find(ctxID);
+				ctx* currCtx = this->getCtx(ctxID);
 
-				if (it == ctxCollection.end()) return;
+				if (!currCtx) return;
 
-				ctx& currentCtx = it->second;
-
-				if (currentCtx.isRunning || currentCtx.isCompleted) return;
+				if (currCtx->isRunning || currCtx->isCompleted) return;
 
 
-				currentCtx.isRunning = true;
+				currCtx->isRunning = true;
 
 				ctxQueue.push_back(ctxID);
 
@@ -199,7 +193,71 @@ namespace GOTHIC_NAMESPACE
 
 			void updateCtxQueue()
 			{
+				static oCNpc::oSDamageDescriptor& dd {};
 
+				for (auto it = ctxQueue.begin(); it != ctxQueue.end();)
+				{
+					ctx* currCtx = this->getCtx(*it);
+
+					if (!currCtx || !currCtx->isRunning || currCtx->isCompleted)
+					{
+						currCtx->isRunning = false;
+						currCtx->isCompleted = true;
+
+						it = ctxQueue.erase(it); continue;
+					}
+
+
+					void* pRet = parser->CallFunc(currCtx->exCndFuncIndex);
+					int isFuncTrue = *reinterpret_cast<int*>(pRet);
+
+					if (isFuncTrue)
+					{
+						currCtx->isRunning = false;
+						currCtx->isCompleted = true;
+
+						it = ctxQueue.erase(it); continue;
+					}
+
+
+					if (currCtx->type == CTX_REGULAR)
+					{
+						dd.pVobAttacker = currCtx->damageSender;
+						dd.pNpcAttacker = currCtx->damageSender;
+						dd.pVobHit = currCtx->damageReceiver;
+						dd.enuModeDamage = currCtx->damageIndex;
+						dd.nSpellID = currCtx->spellID;
+						dd.nSpellCat = 2;
+						dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
+						dd.fDamageTotal = currCtx->damage;
+						dd.bDamageDontKill = currCtx->dontKill;
+
+						dd.fDamageMultiplier = 1.0f;
+						dd.dwFieldsValid = 0;
+					}
+					if (currCtx->type == CTX_LOOP)
+					{
+						float currTime = ogame->GetWorldTimer()->GetFullTime();
+
+						currCtx->currIter++;
+						currCtx->lastIterTime = currTime;
+						
+						dd.pVobAttacker = currCtx->damageSender;
+						dd.pNpcAttacker = currCtx->damageSender;
+						dd.pVobHit = currCtx->damageReceiver;
+						dd.enuModeDamage = currCtx->damageIndex;
+						dd.nSpellID = currCtx->spellID;
+						dd.nSpellCat = 2;
+						dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
+						dd.fDamageTotal = currCtx->damage;
+						dd.bDamageDontKill = currCtx->dontKill;
+
+						dd.fDamageMultiplier = 1.0f;
+						dd.dwFieldsValid = 0;
+					}
+
+					++it;
+				}
 			}
 	};
 
