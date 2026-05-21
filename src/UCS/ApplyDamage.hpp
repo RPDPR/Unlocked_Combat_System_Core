@@ -45,10 +45,10 @@ namespace GOTHIC_NAMESPACE
 				int exCndFuncIndex;
 				int iterCount;
 
-				unsigned long lastIterTime = 0;
-				int currIter = 0;
-				bool isRunning = 0;
-				bool isCompleted = 0;
+				float lastIterTime = -1;
+				int currIter = -1;
+				bool isRunning = false;
+				bool isCompleted = false;
 			};
 
 			std::unordered_map<int, ctx> ctxCollection;
@@ -64,6 +64,25 @@ namespace GOTHIC_NAMESPACE
 				auto it = ctxCollection.find(ctxID);
 
 				if (it == ctxCollection.end()) return nullptr;
+
+				return &it->second;
+			}
+
+			void closeCtx(int ctxID)
+			{
+				auto it = ctxCollection.find(ctxID);
+
+				if (it == ctxCollection.end()) return;
+
+				it->second.isRunning = false;
+				it->second.isCompleted = true;
+			}
+
+			fx* getFx(int fxID)
+			{
+				auto it = fxCollection.find(fxID);
+
+				if (it == fxCollection.end()) return nullptr;
 
 				return &it->second;
 			}
@@ -104,10 +123,11 @@ namespace GOTHIC_NAMESPACE
 			)
 			{
 				ctx* currCtx = this->getCtx(outerCtxID);
+				fx* currFx = this->getFx(fxID);
 
-				if (!currCtx) return;
-
-				if (currCtx->isRunning)
+				if (currCtx && currCtx->isRunning)
+					return outerCtxID;
+				if (!currFx)
 					return outerCtxID;
 
 
@@ -120,13 +140,13 @@ namespace GOTHIC_NAMESPACE
 				newCtx.fxID = fxID;
 				newCtx.damageSender = damageSender;
 				newCtx.damageReceiver = damageReceiver;
-				newCtx.damageIndex = fxCollection[fxID].damageIndex;
-				newCtx.spellID = fxCollection[fxID].spellID;
-				newCtx.damage = fxCollection[fxID].damage;
-				newCtx.dontKill = fxCollection[fxID].dontKill;
-				newCtx.loopInterval = fxCollection[fxID].loopInterval;
-				newCtx.iterCount = fxCollection[fxID].iterCount;
-				newCtx.exCndFuncIndex = fxCollection[fxID].exCndFuncIndex;
+				newCtx.damageIndex = currFx->damageIndex;
+				newCtx.spellID = currFx->spellID;
+				newCtx.damage = currFx->damage;
+				newCtx.dontKill = currFx->dontKill;
+				newCtx.loopInterval = currFx->loopInterval;
+				newCtx.iterCount = currFx->iterCount;
+				newCtx.exCndFuncIndex = currFx->exCndFuncIndex;
 
 				ctxCollection[newCtx.id] = newCtx;
 
@@ -148,9 +168,7 @@ namespace GOTHIC_NAMESPACE
 			{
 				ctx* currCtx = this->getCtx(outerCtxID);
 
-				if (!currCtx) return;
-
-				if (currCtx->isRunning)
+				if (currCtx && currCtx->isRunning)
 					return outerCtxID;
 
 
@@ -193,7 +211,7 @@ namespace GOTHIC_NAMESPACE
 
 			void updateCtxQueue()
 			{
-				static oCNpc::oSDamageDescriptor& dd {};
+				oCNpc::oSDamageDescriptor dd {};
 
 				for (auto it = ctxQueue.begin(); it != ctxQueue.end();)
 				{
@@ -201,22 +219,21 @@ namespace GOTHIC_NAMESPACE
 
 					if (!currCtx || !currCtx->isRunning || currCtx->isCompleted)
 					{
-						currCtx->isRunning = false;
-						currCtx->isCompleted = true;
-
+						this->closeCtx(*it);
 						it = ctxQueue.erase(it); continue;
 					}
 
 
-					void* pRet = parser->CallFunc(currCtx->exCndFuncIndex);
-					int isFuncTrue = *reinterpret_cast<int*>(pRet);
-
-					if (isFuncTrue)
+					if (currCtx->exCndFuncIndex >= 0)
 					{
-						currCtx->isRunning = false;
-						currCtx->isCompleted = true;
+						void* pRet = parser->CallFunc(currCtx->exCndFuncIndex);
+						int isFuncTrue = *reinterpret_cast<int*>(pRet);
 
-						it = ctxQueue.erase(it); continue;
+						if (isFuncTrue)
+						{
+							this->closeCtx(*it);
+							it = ctxQueue.erase(it); continue;
+						}
 					}
 
 
@@ -227,36 +244,95 @@ namespace GOTHIC_NAMESPACE
 						dd.pVobHit = currCtx->damageReceiver;
 						dd.enuModeDamage = currCtx->damageIndex;
 						dd.nSpellID = currCtx->spellID;
-						dd.nSpellCat = 2;
 						dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
 						dd.fDamageTotal = currCtx->damage;
-						dd.bDamageDontKill = currCtx->dontKill;
+
+						#if ENGINE == Engine_G2A
+							dd.nSpellCat = 2;
+							dd.bDamageDontKill = currCtx->dontKill;
+						#endif
 
 						dd.fDamageMultiplier = 1.0f;
 						dd.dwFieldsValid = 0;
+
+
+						currCtx->damageReceiver->OnDamage(dd);
+
+						this->closeCtx(*it);
+						it = ctxQueue.erase(it); continue;
 					}
 					if (currCtx->type == CTX_LOOP)
 					{
 						float currTime = ogame->GetWorldTimer()->GetFullTime();
 
-						currCtx->currIter++;
-						currCtx->lastIterTime = currTime;
+						bool isCtxBroken =
+						(
+							!currCtx->currIter != !currCtx->lastIterTime
+						);
+
+						bool isFirstIter =
+						(
+							currCtx->currIter == -1 &&
+							currCtx->lastIterTime == -1
+						);
+
+						bool isCooldownPassed =
+						(
+							currTime >= (currCtx->lastIterTime + currCtx->loopInterval)
+						);
+
+						bool isItersExceeded = 
+						(
+							currCtx->iterCount >= 0 && currCtx->currIter >= currCtx->iterCount
+						);
+
+
+						if (isCtxBroken || isItersExceeded)
+						{
+							this->closeCtx(*it);
+							it = ctxQueue.erase(it); continue;
+						}
+
+						if (!isFirstIter && !isCooldownPassed)
+						{
+							++it; continue;
+						}
+
+						if (isFirstIter)
+						{
+							currCtx->currIter = 0;
+						}
 						
 						dd.pVobAttacker = currCtx->damageSender;
 						dd.pNpcAttacker = currCtx->damageSender;
 						dd.pVobHit = currCtx->damageReceiver;
 						dd.enuModeDamage = currCtx->damageIndex;
 						dd.nSpellID = currCtx->spellID;
-						dd.nSpellCat = 2;
 						dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
 						dd.fDamageTotal = currCtx->damage;
-						dd.bDamageDontKill = currCtx->dontKill;
+
+						#if ENGINE == Engine_G2A
+							dd.nSpellCat = 2;
+							dd.bDamageDontKill = currCtx->dontKill;
+						#endif
 
 						dd.fDamageMultiplier = 1.0f;
 						dd.dwFieldsValid = 0;
+
+
+						currCtx->damageReceiver->OnDamage(dd);
+
+
+						currCtx->currIter++;
+						currCtx->lastIterTime = currTime;
+						
 					}
 
 					++it;
+
+					Union::StringANSI(zSTRING(" ")).StdPrintLine();
+					Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, currTime: {2}, lastIterTime: {3}, loopInterval: {4},"), currCtx->id, currCtx->type, ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
+					Union::StringANSI(zSTRING(" ")).StdPrintLine();
 				}
 			}
 	};
@@ -289,8 +365,10 @@ namespace GOTHIC_NAMESPACE
 
 			ucsManager.runCtx(ctxID);
 
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("Call UCS_AD FUNC")).StdPrintLine();
 			Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(ctxID)).StdPrintLine();
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
 
 		return 0;
@@ -315,9 +393,11 @@ namespace GOTHIC_NAMESPACE
 
 			*outerCtxID = ctxID;
 
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("Call UCS_SLD FUNC")).StdPrintLine();
 			Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(ctxID)).StdPrintLine();
 			Union::StringANSI(zSTRING("ctxCollection.fxID: ")).StdPrint(); Union::StringANSI(zSTRING(fxID)).StdPrintLine();
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
 
 		return 0;
@@ -356,9 +436,11 @@ namespace GOTHIC_NAMESPACE
 
 			*outerCtxID = ctxID;
 
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("Call UCS_SLDE FUNC")).StdPrintLine();
 			Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(ctxID)).StdPrintLine();
 			Union::StringANSI(zSTRING("ctxCollection.fxID: ")).StdPrint(); Union::StringANSI(zSTRING(-1)).StdPrintLine();
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
 
 		return 0;
@@ -389,8 +471,10 @@ namespace GOTHIC_NAMESPACE
 
 			parser->SetReturn(fxID);
 
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("Call UCS_CLD FUNC")).StdPrintLine();
 			Union::StringANSI(zSTRING("fxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(fxID)).StdPrintLine();
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
 
 		return 0;
