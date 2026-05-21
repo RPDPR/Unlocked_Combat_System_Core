@@ -52,12 +52,10 @@ namespace GOTHIC_NAMESPACE
 			};
 
 			std::unordered_map<int, ctx> ctxCollection;
+			std::vector<int> ctxQueue;
 
 			int nextFxID = 0;
 			int nextCtxID = 0;
-
-			std::deque<int> pipelineQueue;
-			std::vector<int> activeLoops;
 
 		public:
 
@@ -171,7 +169,35 @@ namespace GOTHIC_NAMESPACE
 
 				return newCtx.id;
 			}
+
+			ctx* getCtx(int ctxID)
+			{
+				auto it = ctxCollection.find(ctxID);
+
+				if (it == ctxCollection.end()) return nullptr;
+
+				return &it->second;
+			}
+
 			void runCtx(int ctxID)
+			{
+				auto it = ctxCollection.find(ctxID);
+
+				if (it == ctxCollection.end()) return;
+
+				ctx& currentCtx = it->second;
+
+				if (currentCtx.isRunning || currentCtx.isCompleted) return;
+
+
+				currentCtx.isRunning = true;
+
+				ctxQueue.push_back(ctxID);
+
+				return;
+			}
+
+			void updateCtxQueue()
 			{
 
 			}
@@ -318,8 +344,8 @@ namespace GOTHIC_NAMESPACE
 		parser->DefineExternal("UCS_ApplyDamage", UCS_ApplyDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 
 		parser->DefineExternal("UCS_StartLoopDamage", UCS_StartLoopDamage, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
-		parser->DefineExternal("UCS_StartLoopDamageEx", UCS_StartLoopDamageEx, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_StartLoopDamageEx", UCS_StartLoopDamageEx, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 
-		parser->DefineExternal("UCS_CreateLoopDamage", UCS_CreateLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_CreateLoopDamage", UCS_CreateLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 	}
 }
