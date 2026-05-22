@@ -9,9 +9,10 @@ namespace GOTHIC_NAMESPACE
 			{
 				int id;
 
+				int damage;
 				oEDamageIndex damageIndex;
 				int spellID;
-				int damage;
+				zSTRING strVisualFX;
 				int dontKill;
 				float loopInterval;
 				int exCndFuncIndex;
@@ -28,6 +29,15 @@ namespace GOTHIC_NAMESPACE
 
 			struct ctx
 			{
+				enum Param
+				{
+
+					IsRunning,
+					LoopInterval,
+					LastIterTime,
+					IterCount
+				};
+
 				int id;
 
 				CtxType type;
@@ -37,9 +47,10 @@ namespace GOTHIC_NAMESPACE
 				oCNpc* damageSender;
 				oCNpc* damageReceiver;
 
+				int damage;
 				oEDamageIndex damageIndex;
 				int spellID;
-				int damage;
+				zSTRING strVisualFX;
 				int dontKill;
 				float loopInterval;
 				int exCndFuncIndex;
@@ -254,6 +265,13 @@ namespace GOTHIC_NAMESPACE
 						#endif
 
 						dd.fDamageMultiplier = 1.0f;
+						dd.vecLocationHit = currCtx->damageReceiver->GetPositionWorld();
+						dd.vecDirectionFly =
+						(
+							currCtx->damageReceiver->GetPositionWorld() -
+							currCtx->damageSender->GetPositionWorld()
+						).Normalize();
+
 						dd.dwFieldsValid = 0;
 
 
@@ -323,6 +341,13 @@ namespace GOTHIC_NAMESPACE
 						#endif
 
 						dd.fDamageMultiplier = 1.0f;
+						dd.vecLocationHit = currCtx->damageReceiver->GetPositionWorld();
+						dd.vecDirectionFly =
+						(
+							currCtx->damageReceiver->GetPositionWorld() -
+							currCtx->damageSender->GetPositionWorld()
+						).Normalize();
+
 						dd.dwFieldsValid = 0;
 
 
@@ -341,6 +366,8 @@ namespace GOTHIC_NAMESPACE
 					Union::StringANSI(zSTRING(" ")).StdPrintLine();
 				}
 			}
+
+			void getCtxParam(int ctxID, int ctxParam) {}
 	};
 
 	UCS_Manager ucsManager;
@@ -348,22 +375,61 @@ namespace GOTHIC_NAMESPACE
 
 	// EXTERNAL FUNCTIONS /////
 
-	int __cdecl UCS_ApplyDamage()
+	int __cdecl UCS_CreateLoopDamage()
 	{
+		int damage;
 		int damageIndex;
 		int spellID;
+		zSTRING strVisualFX;
+		int dontKill;
+		float loopInterval;
+		int iterCount;
+		int exCndFuncIndex;
+
+		parser->GetParameter(exCndFuncIndex);
+		parser->GetParameter(iterCount);
+		parser->GetParameter(loopInterval);
+		parser->GetParameter(dontKill);
+		parser->GetParameter(strVisualFX);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
+
+		if (damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 500.0f && iterCount >= -1 && exCndFuncIndex >= -1)
+		{
+			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
+
+			int fxID = ucsManager.addFX(resultDamageIndex, spellID, damage, dontKill, loopInterval, iterCount, exCndFuncIndex);
+
+			parser->SetReturn(fxID);
+
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
+			Union::StringANSI(zSTRING("Call UCS_CLD FUNC")).StdPrintLine();
+			Union::StringANSI(zSTRING("fxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(fxID)).StdPrintLine();
+			Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		}
+
+		return 0;
+	};
+
+	int __cdecl UCS_ApplyDamage()
+	{
 		int damage;
+		int damageIndex;
+		int spellID;
+		zSTRING strVisualFX;
 		int dontKill;
 
 		parser->GetParameter(dontKill);
-		parser->GetParameter(damage);
+		parser->GetParameter(strVisualFX);
 		parser->GetParameter(spellID);
 		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		if (damageSender != nullptr && damageReceiver != nullptr && damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0)
+		if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
@@ -379,7 +445,6 @@ namespace GOTHIC_NAMESPACE
 
 		return 0;
 	};
-
 	int __cdecl UCS_StartLoopDamage()
 	{
 		int* outerCtxID;
@@ -411,9 +476,10 @@ namespace GOTHIC_NAMESPACE
 	int __cdecl UCS_StartLoopDamageEx()
 	{
 		int* outerCtxID;
+		int damage;
 		int damageIndex;
 		int spellID;
-		int damage;
+		zSTRING strVisualFX;
 		int dontKill;
 		float loopInterval;
 		int iterCount;
@@ -423,16 +489,17 @@ namespace GOTHIC_NAMESPACE
 		parser->GetParameter(iterCount);
 		parser->GetParameter(loopInterval);
 		parser->GetParameter(dontKill);
-		parser->GetParameter(damage);
+		parser->GetParameter(strVisualFX);
 		parser->GetParameter(spellID);
 		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
 		outerCtxID = parser->PopVarAddress();
 
-		if (damageSender != nullptr && damageReceiver != nullptr && damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0 && loopInterval >= 500.0f && iterCount >= -1 && exCndFuncIndex >= -1)
+		if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 500.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
@@ -451,49 +518,90 @@ namespace GOTHIC_NAMESPACE
 
 		return 0;
 	};
-	int __cdecl UCS_CreateLoopDamage()
+
+	int __cdecl UCS_StopLoopDamage()
 	{
-		int damageIndex;
-		int spellID;
-		int damage;
-		int dontKill;
-		float loopInterval;
-		int iterCount;
-		int exCndFuncIndex;
+		int* outerCtxID;
 
-		parser->GetParameter(exCndFuncIndex);
-		parser->GetParameter(iterCount);
-		parser->GetParameter(loopInterval);
-		parser->GetParameter(dontKill);
-		parser->GetParameter(damage);
-		parser->GetParameter(spellID);
-		parser->GetParameter(damageIndex);
+		outerCtxID = parser->PopVarAddress();
 
-		if (damageIndex >= 0 && spellID >= -1 && damage >= 0 && dontKill >= 0 && loopInterval >= 500.0f && iterCount >= -1 && exCndFuncIndex >= -1)
-		{
-			oEDamageIndex resultDamageIndex = damageIndex < 8 ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
+		ucsManager.closeCtx(*outerCtxID);
 
-			int fxID = ucsManager.addFX(resultDamageIndex, spellID, damage, dontKill, loopInterval, iterCount, exCndFuncIndex);
+		*outerCtxID = -1;
 
-			parser->SetReturn(fxID);
-
-			Union::StringANSI(zSTRING(" ")).StdPrintLine();
-			Union::StringANSI(zSTRING("Call UCS_CLD FUNC")).StdPrintLine();
-			Union::StringANSI(zSTRING("fxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(fxID)).StdPrintLine();
-			Union::StringANSI(zSTRING(" ")).StdPrintLine();
-		}
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		Union::StringANSI(zSTRING("Call UCS_STOPLD FUNC")).StdPrintLine();
+		Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(*outerCtxID)).StdPrintLine();
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
 
 		return 0;
 	};
 
 
+	/* int __cdecl UCS_IsRunning()
+	{
+		int* outerCtxID;
+
+		outerCtxID = parser->PopVarAddress();
+
+		int isRunning = ucsManager.getCtxParam(*outerCtxID, ctx:);
+
+		*outerCtxID = -1;
+
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		Union::StringANSI(zSTRING("Call UCS_STOPLD FUNC")).StdPrintLine();
+		Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(*outerCtxID)).StdPrintLine();
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+
+		return 0;
+	};
+
+	int __cdecl UCS_Get()
+	{
+		int* outerCtxID;
+
+		outerCtxID = parser->PopVarAddress();
+
+		int isRunning = ucsManager.getCtxParam(*outerCtxID, ctx:);
+
+		*outerCtxID = -1;
+
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		Union::StringANSI(zSTRING("Call UCS_STOPLD FUNC")).StdPrintLine();
+		Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(*outerCtxID)).StdPrintLine();
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+
+		return 0;
+	};
+	int __cdecl UCS_Set()
+	{
+		int* outerCtxID;
+
+		outerCtxID = parser->PopVarAddress();
+
+		int isRunning = ucsManager.getCtxParam(*outerCtxID, ctx:);
+
+		*outerCtxID = -1;
+
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+		Union::StringANSI(zSTRING("Call UCS_STOPLD FUNC")).StdPrintLine();
+		Union::StringANSI(zSTRING("ctxCollection.id: ")).StdPrint(); Union::StringANSI(zSTRING(*outerCtxID)).StdPrintLine();
+		Union::StringANSI(zSTRING(" ")).StdPrintLine();
+
+		return 0;
+	};
+	*/
+
 	void Game_DefineExternals_ApplyDamage()
 	{
-		parser->DefineExternal("UCS_ApplyDamage", UCS_ApplyDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
-
+		parser->DefineExternal("UCS_CreateLoopDamage", UCS_CreateLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+		
+		parser->DefineExternal("UCS_ApplyDamage", UCS_ApplyDamage, zPAR_TYPE_VOID, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 		parser->DefineExternal("UCS_StartLoopDamage", UCS_StartLoopDamage, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
-		parser->DefineExternal("UCS_StartLoopDamageEx", UCS_StartLoopDamageEx, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_StartLoopDamageEx", UCS_StartLoopDamageEx, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+	
+		parser->DefineExternal("UCS_StopLoopDamage", UCS_StopLoopDamage, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 
-		parser->DefineExternal("UCS_CreateLoopDamage", UCS_CreateLoopDamage, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+		//parser->DefineExternal("UCS_IsRunning", UCS_IsRunning, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 	}
 }

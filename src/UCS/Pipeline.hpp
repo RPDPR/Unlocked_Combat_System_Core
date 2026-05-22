@@ -27,6 +27,36 @@ namespace GOTHIC_NAMESPACE
 
 		return oEDamageType_Unknown;
 	}
+	std::vector<int> GetDamageIndexArr(unsigned long damageMask)
+	{
+		std::vector<int> result;
+
+		if (damageMask & oEDamageType_Barrier)
+			result.push_back(oEDamageIndex_Barrier);
+
+		if (damageMask & oEDamageType_Blunt)
+			result.push_back(oEDamageIndex_Blunt);
+
+		if (damageMask & oEDamageType_Edge)
+			result.push_back(oEDamageIndex_Edge);
+
+		if (damageMask & oEDamageType_Fire)
+			result.push_back(oEDamageIndex_Fire);
+
+		if (damageMask & oEDamageType_Fly)
+			result.push_back(oEDamageIndex_Fly);
+
+		if (damageMask & oEDamageType_Magic)
+			result.push_back(oEDamageIndex_Magic);
+
+		if (damageMask & oEDamageType_Point)
+			result.push_back(oEDamageIndex_Point);
+
+		if (damageMask & oEDamageType_Fall)
+			result.push_back(oEDamageIndex_Fall);
+
+		return result;
+	}
 
 	int Call_PullCustomDamageType(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
 	{
@@ -148,7 +178,12 @@ namespace GOTHIC_NAMESPACE
 		attackerInstance = dd.pNpcAttacker != nullptr ? dd.pNpcAttacker->GetInstance() : -1;
 		receiverInstance = self != nullptr ? self->GetInstance() : -1;
 
-		damageIndex = GetDamageIndex((oEDamageType)dd.enuModeDamage); // damage index by damageType
+		auto damageIndexArr = GetDamageIndexArr(dd.enuModeDamage);
+
+		damageIndex =
+			damageIndexArr.empty()
+			? -1
+			: damageIndexArr[0];
 
 		pureDamage = Call_PullPureDamage(attackerInstance, receiverInstance, damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
 
