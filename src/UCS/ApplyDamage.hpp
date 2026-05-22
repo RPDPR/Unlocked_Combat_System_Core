@@ -211,10 +211,10 @@ namespace GOTHIC_NAMESPACE
 
 			void updateCtxQueue()
 			{
-				oCNpc::oSDamageDescriptor dd {};
-
 				for (auto it = ctxQueue.begin(); it != ctxQueue.end();)
 				{
+					oCNpc::oSDamageDescriptor dd{};
+
 					ctx* currCtx = this->getCtx(*it);
 
 					if (!currCtx || !currCtx->isRunning || currCtx->isCompleted)
@@ -235,6 +235,7 @@ namespace GOTHIC_NAMESPACE
 							it = ctxQueue.erase(it); continue;
 						}
 					}
+					Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, currTime: {2}, lastIterTime: {3}, loopInterval: {4},"), currCtx->id, currCtx->type, ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
 
 
 					if (currCtx->type == CTX_REGULAR)
@@ -285,9 +286,14 @@ namespace GOTHIC_NAMESPACE
 						(
 							currCtx->iterCount >= 0 && currCtx->currIter >= currCtx->iterCount
 						);
+						
+						bool isReceiverDead =
+						(
+							currCtx->damageReceiver->IsDead()
+						);
 
 
-						if (isCtxBroken || isItersExceeded)
+						if (isCtxBroken || isItersExceeded || isReceiverDead)
 						{
 							this->closeCtx(*it);
 							it = ctxQueue.erase(it); continue;
