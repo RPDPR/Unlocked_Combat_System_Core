@@ -136,7 +136,7 @@ namespace GOTHIC_NAMESPACE
 				ctx* currCtx = getCtx(outerCtxID);
 				fx* currFx = getFx(fxID);
 
-				if (currCtx && (currCtx->isRunning || currCtx->isCompleted))
+				if (currCtx && currCtx->isRunning)
 					return outerCtxID;
 				if (!isFxValid(currFx))
 					return outerCtxID;
@@ -181,7 +181,7 @@ namespace GOTHIC_NAMESPACE
 			{
 				ctx* currCtx = getCtx(outerCtxID);
 
-				if (currCtx && (currCtx->isRunning || currCtx->isCompleted))
+				if (currCtx && currCtx->isRunning)
 					return outerCtxID;
 
 
@@ -257,6 +257,8 @@ namespace GOTHIC_NAMESPACE
 
 				it->second.isRunning = false;
 				it->second.isCompleted = true;
+
+				Union::StringANSI::Format(zSTRING("Ctx with id: {0}, was closed! Params: type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currTime: {5}, lastIterTime: {6}, loopInterval: {7}, "), it->second.id, it->second.type, getCtxIsRunning(it->second.id), getCtxIsCompleted(it->second.id), getCtxDamage(it->second.id), ogame->GetWorldTimer()->GetFullTime(), it->second.lastIterTime, it->second.loopInterval).StdPrintLine();
 			}
 
 			void updateCtxQueue()
@@ -285,7 +287,7 @@ namespace GOTHIC_NAMESPACE
 							it = ctxQueue.erase(it); continue;
 						}
 					}
-					Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, currTime: {2}, lastIterTime: {3}, loopInterval: {4},"), currCtx->id, currCtx->type, ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
+					Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currTime: {5}, lastIterTime: {6}, loopInterval: {7}, "), currCtx->id, currCtx->type, getCtxIsRunning(currCtx->id), getCtxIsCompleted(currCtx->id), getCtxDamage(currCtx->id), ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
 
 
 					if (currCtx->type == CTX_REGULAR)
@@ -396,10 +398,6 @@ namespace GOTHIC_NAMESPACE
 					}
 
 					++it;
-
-					Union::StringANSI(zSTRING(" ")).StdPrintLine();
-					Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, currTime: {2}, lastIterTime: {3}, loopInterval: {4},"), currCtx->id, currCtx->type, ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
-					Union::StringANSI(zSTRING(" ")).StdPrintLine();
 				}
 			}
 			
