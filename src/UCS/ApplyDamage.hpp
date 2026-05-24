@@ -1,8 +1,6 @@
 
 namespace GOTHIC_NAMESPACE
 {
-	static int gPipelineDepth = 0;
-
 	class UCS_Manager
 	{
 	private:
@@ -33,12 +31,12 @@ namespace GOTHIC_NAMESPACE
 		struct ctx
 		{
 			int id;
-
 			CtxType type = CTX_UNKNOWN;
 			int fxID = -1;
 
 			oCNpc* damageSender;
 			oCNpc* damageReceiver;
+
 			int damage;
 			oEDamageIndex damageIndex;
 			int spellID;
@@ -51,6 +49,7 @@ namespace GOTHIC_NAMESPACE
 			float lastIterTime = -1.0f;
 			int currIter = -1;
 			bool isRunning = false;
+			bool isApplying = false;
 			bool isCompleted = false;
 		};
 
@@ -152,10 +151,9 @@ namespace GOTHIC_NAMESPACE
 			ctx newCtx{};
 
 			newCtx.id = nextCtxID++;
-
 			newCtx.type = CTX_LOOP;
-
 			newCtx.fxID = fxID;
+
 			newCtx.damageSender = damageSender;
 			newCtx.damageReceiver = damageReceiver;
 			newCtx.damage = currFx->damage;
@@ -195,7 +193,6 @@ namespace GOTHIC_NAMESPACE
 			ctx newCtx{};
 
 			newCtx.id = nextCtxID++;
-
 			newCtx.type = (loopInterval >= 500.0f) && (iterCount >= 0 || exCndFuncIndex >= 0) ? CTX_LOOP : CTX_REGULAR;
 
 			newCtx.damageSender = damageSender;
@@ -226,15 +223,15 @@ namespace GOTHIC_NAMESPACE
 				currCtx->damageIndex < 0 ||
 				currCtx->damageIndex >= oEDamageIndex_MAX ||
 				currCtx->spellID < -1 ||
-				currCtx->dontKill < 0)
+				currCtx->dontKill < 0 ||
+				(currCtx->isRunning || currCtx->isApplying) && currCtx->isCompleted)
 				return false;
 
 			if (currCtx->type == CTX_LOOP)
 			{
 				if (currCtx->loopInterval < 500.0f ||
 					currCtx->iterCount < 0 && currCtx->exCndFuncIndex < 0 ||
-					(currCtx->currIter == -1) != (currCtx->lastIterTime == -1.0f) ||
-					currCtx->isRunning && currCtx->isCompleted)
+					(currCtx->currIter == -1) != (currCtx->lastIterTime == -1.0f))
 					return false;
 			}
 
@@ -247,7 +244,7 @@ namespace GOTHIC_NAMESPACE
 
 			if (!isCtxValid(currCtx)) return;
 
-			if (currCtx->isRunning || currCtx->isCompleted) return;
+			if (currCtx->isRunning || currCtx->isApplying || currCtx->isCompleted) return;
 
 			currCtx->isRunning = true;
 
@@ -262,6 +259,7 @@ namespace GOTHIC_NAMESPACE
 
 			if (it == ctxCollection.end()) return;
 
+			it->second.isApplying = false;
 			it->second.isRunning = false;
 			it->second.isCompleted = true;
 
@@ -273,6 +271,10 @@ namespace GOTHIC_NAMESPACE
 			/* for (auto& [id, currFx] : fxCollection)
 			{
 				Union::StringANSI::Format(zSTRING("fxCollection.id {0}: fxID: {1}"), id, currFx.id).StdPrintLine();
+			} */
+			/* for (auto& [id, currCtx] : ctxCollection)
+			{
+				Union::StringANSI::Format(zSTRING("size: {0}, ctxCollection.id {1}: ctxID: {2}"), ctxCollection.size(), id, currCtx.id).StdPrintLine();
 			} */
 
 			for (auto it = ctxQueue.begin(); it != ctxQueue.end();)
@@ -299,7 +301,7 @@ namespace GOTHIC_NAMESPACE
 						it = ctxQueue.erase(it); continue;
 					}
 				}
-				Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currIter: {5}, iterCount: {6}, exCndFuncIdx: {7}, "), currCtx->id, currCtx->type, getCtxIsRunning(currCtx->id), getCtxIsCompleted(currCtx->id), getCtxDamage(currCtx->id), currCtx->currIter, currCtx->iterCount, currCtx->exCndFuncIndex).StdPrintLine();
+				//Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currIter: {5}, iterCount: {6}, exCndFuncIdx: {7}, "), currCtx->id, currCtx->type, getCtxIsRunning(currCtx->id), getCtxIsCompleted(currCtx->id), getCtxDamage(currCtx->id), currCtx->currIter, currCtx->iterCount, currCtx->exCndFuncIndex).StdPrintLine();
 
 
 				if (currCtx->type == CTX_REGULAR)
@@ -329,7 +331,9 @@ namespace GOTHIC_NAMESPACE
 					dd.dwFieldsValid = 0;
 
 					// damage applying
+					currCtx->isApplying = true;
 					currCtx->damageReceiver->OnDamage(dd);
+					currCtx->isApplying = false;
 					// damage applying
 
 					closeCtx(*it);
@@ -355,13 +359,18 @@ namespace GOTHIC_NAMESPACE
 						currCtx->iterCount >= 0 && currCtx->currIter >= currCtx->iterCount
 					);
 
+					bool isReceiverUnconscious =
+					(
+						currCtx->damageReceiver->IsUnconscious()
+					);
+
 					bool isReceiverDead =
 					(
 						currCtx->damageReceiver->IsDead()
 					);
 
 
-					if (isItersExceeded || isReceiverDead)
+					if (isItersExceeded || isReceiverUnconscious || isReceiverDead)
 					{
 						closeCtx(*it);
 						it = ctxQueue.erase(it); continue;
@@ -376,6 +385,9 @@ namespace GOTHIC_NAMESPACE
 					{
 						currCtx->currIter = 0;
 					}
+
+					currCtx->currIter++;
+					currCtx->lastIterTime = currTime;
 
 					dd.pVobAttacker = currCtx->damageSender;
 					dd.pNpcAttacker = currCtx->damageSender;
@@ -399,19 +411,26 @@ namespace GOTHIC_NAMESPACE
 						currCtx->damageSender->GetPositionWorld()
 					).Normalize();
 
-					dd.dwFieldsValid = 0;
+					dd.dwFieldsValid = 1 << 1 << 1 << 1 << 1 << 1 << 1 << 1;
+
+					Union::StringANSI::Format(zSTRING("APPLYING CTX WITH ID {0} AND ITER {1} AND DAMAGE {2}"), currCtx->id, currCtx->currIter, currCtx->damage).StdPrintLine();
 
 					// damage applying
+					currCtx->isApplying = true;
+					Union::StringANSI::Format(zSTRING("dd.aryDamage {0} AND dd.fDamageTotal {1} AND damageType {2}"), dd.aryDamage[dd.enuModeDamage], dd.fDamageTotal, dd.enuModeDamage).StdPrintLine();
 					currCtx->damageReceiver->OnDamage(dd);
+					currCtx->isApplying = false;
 					// damage applying
-
-					currCtx->currIter++;
-					currCtx->lastIterTime = currTime;
-
 				}
 
 				++it;
 			}
+		}
+
+		void clearCtxQueue()
+		{
+			ctxQueue.clear();
+			Union::StringANSI::Format(zSTRING("ctxQueue was cleared! ctxQueue size: {0}"), ctxQueue.size()).StdPrintLine();
 		}
 
 
@@ -496,6 +515,12 @@ namespace GOTHIC_NAMESPACE
 
 			return currCtx ? currCtx->isRunning : false;
 		}
+		bool getCtxIsApplying(int ctxID)
+		{
+			ctx* currCtx = getCtx(ctxID);
+
+			return currCtx ? currCtx->isApplying : false;
+		}
 		bool getCtxIsCompleted(int ctxID)
 		{
 			ctx* currCtx = getCtx(ctxID);
@@ -511,8 +536,6 @@ namespace GOTHIC_NAMESPACE
 			ctx* currCtx = getCtx(ctxID);
 
 			if (currCtx && newDamage >= 0) currCtx->damage = newDamage;
-
-			Union::StringANSI::Format(zSTRING("SET DAMAGE IN CTX WITH ID: {0} TO {1}!"), currCtx->id, currCtx->damage).StdPrintLine();
 		}
 		void setCtxDamageIndex(int ctxID, oEDamageIndex newDamageIndex)
 		{
@@ -561,16 +584,6 @@ namespace GOTHIC_NAMESPACE
 	};
 
 	UCS_Manager ucsManager;
-
-
-	void __fastcall oCNpc_OnDamage(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor & dd);
-	auto Hook_oCNpc_OnDamage = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x00730FE0, 0x006660E0)), &oCNpc_OnDamage, Union::HookType::Hook_CallPatch);
-	void __fastcall oCNpc_OnDamage(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd)
-	{
-		gPipelineDepth++;
-		Hook_oCNpc_OnDamage(self, vtable, dd);
-		gPipelineDepth--;
-	}
 
 
 	// EXTERNAL FUNCTIONS /////
@@ -745,7 +758,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int isRunning = gPipelineDepth == 0 ? ucsManager.getCtxIsRunning(outerCtxID) : -1;
+		int isRunning = ucsManager.getCtxIsRunning(outerCtxID);
 
 		parser->SetReturn(isRunning); return 0;
 	};
@@ -753,7 +766,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int isCompleted = gPipelineDepth == 0 ? ucsManager.getCtxIsCompleted(outerCtxID) : -1;
+		int isCompleted = ucsManager.getCtxIsCompleted(outerCtxID);
 
 		parser->SetReturn(isCompleted); return 0;
 	};
@@ -761,7 +774,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int fxID = gPipelineDepth == 0 ? ucsManager.getCtxFxID(outerCtxID) : -1;
+		int fxID = ucsManager.getCtxFxID(outerCtxID);
 
 		parser->SetReturn(fxID); return 0;
 	};
@@ -769,7 +782,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		oCNpc* damageSender = gPipelineDepth == 0 ? ucsManager.getCtxDamageSender(outerCtxID) : nullptr;
+		oCNpc* damageSender = ucsManager.getCtxDamageSender(outerCtxID);
 
 		parser->SetReturn(damageSender); return 0;
 	};
@@ -777,7 +790,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		oCNpc* damageReceiver = gPipelineDepth == 0 ? ucsManager.getCtxDamageReceiver(outerCtxID) : nullptr;
+		oCNpc* damageReceiver = ucsManager.getCtxDamageReceiver(outerCtxID);
 
 		parser->SetReturn(damageReceiver); return 0;
 	};
@@ -785,7 +798,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int damage = gPipelineDepth == 0 ? ucsManager.getCtxDamage(outerCtxID) : -1;
+		int damage = ucsManager.getCtxDamage(outerCtxID);
 
 		Union::StringANSI::Format(zSTRING("getDamage: {0}"), damage).StdPrintLine();
 
@@ -795,7 +808,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int damageIndex = gPipelineDepth == 0 ? ucsManager.getCtxDamageIndex(outerCtxID) : -1;
+		int damageIndex = ucsManager.getCtxDamageIndex(outerCtxID);
 
 		parser->SetReturn(damageIndex); return 0;
 	};
@@ -803,7 +816,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int currentIter = gPipelineDepth == 0 ? ucsManager.getCtxCurrIter(outerCtxID) : -1;
+		int currentIter = ucsManager.getCtxCurrIter(outerCtxID);
 
 		Union::StringANSI::Format(zSTRING("EXTERNAL GET CURRENT ITER {0} OUT OF CTX WITH ID: {1}!"), currentIter, outerCtxID).StdPrintLine();
 
@@ -813,7 +826,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		float loopInterval = gPipelineDepth == 0 ? ucsManager.getCtxLoopInterval(outerCtxID) : -1.0f;
+		float loopInterval = ucsManager.getCtxLoopInterval(outerCtxID);
 
 		parser->SetReturn(loopInterval); return 0;
 	};
@@ -821,7 +834,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int iterCount = gPipelineDepth == 0 ? ucsManager.getCtxIterCount(outerCtxID) : -1;
+		int iterCount = ucsManager.getCtxIterCount(outerCtxID);
 
 		parser->SetReturn(iterCount); return 0;
 	};
@@ -829,7 +842,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int spellID = gPipelineDepth == 0 ? ucsManager.getCtxSpellID(outerCtxID) : -1;
+		int spellID = ucsManager.getCtxSpellID(outerCtxID);
 
 		parser->SetReturn(spellID); return 0;
 	};
@@ -837,7 +850,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		zSTRING visualFX = gPipelineDepth == 0 ? ucsManager.getCtxStrVisualFX(outerCtxID) : zSTRING("");
+		zSTRING visualFX = ucsManager.getCtxStrVisualFX(outerCtxID);
 
 		parser->SetReturn(visualFX); return 0;
 	};
@@ -845,7 +858,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		int dontKill = gPipelineDepth == 0 ? ucsManager.getCtxDontKill(outerCtxID) : -1;
+		int dontKill = ucsManager.getCtxDontKill(outerCtxID);
 
 		parser->SetReturn(dontKill); return 0;
 	};
@@ -853,7 +866,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		int outerCtxID; parser->GetParameter(outerCtxID);
 
-		float lastIterTime = gPipelineDepth == 0 ? ucsManager.getCtxLastIterTime(outerCtxID) : -1.0f;
+		float lastIterTime = ucsManager.getCtxLastIterTime(outerCtxID);
 
 		parser->SetReturn(lastIterTime); return 0;
 	};
@@ -866,9 +879,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newDamage); parser->GetParameter(outerCtxID);
 
-		Union::StringANSI::Format(zSTRING("EXTERNAL SET DAMAGE IN CTX WITH ID: {0} TO {1}!"), outerCtxID, newDamage).StdPrintLine();
-
-		if (gPipelineDepth == 0) ucsManager.setCtxDamage(outerCtxID, newDamage); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) { ucsManager.setCtxDamage(outerCtxID, newDamage); Union::StringANSI::Format(zSTRING("EXTERNAL SET DAMAGE IN CTX WITH ID: {0} TO {1}!"), outerCtxID, newDamage).StdPrintLine(); } return 0;
 	};
 	int __cdecl UCS_SetDamageIndex()
 	{
@@ -876,7 +887,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newDamageIndex); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxDamageIndex(outerCtxID, (oEDamageIndex)newDamageIndex); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxDamageIndex(outerCtxID, (oEDamageIndex)newDamageIndex); return 0;
 	};
 	int __cdecl UCS_SetSpellID()
 	{
@@ -884,7 +895,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newSpellID); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxSpellID(outerCtxID, newSpellID); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxSpellID(outerCtxID, newSpellID); return 0;
 	};
 	int __cdecl UCS_SetVisualFX()
 	{
@@ -892,7 +903,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newVisualFX); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxStrVisualFX(outerCtxID, newVisualFX); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxStrVisualFX(outerCtxID, newVisualFX); return 0;
 	};
 	int __cdecl UCS_SetDontKill()
 	{
@@ -900,7 +911,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newDontKill); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxDontKill(outerCtxID, newDontKill); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxDontKill(outerCtxID, newDontKill); return 0;
 	};
 	int __cdecl UCS_SetLoopInterval()
 	{
@@ -908,7 +919,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newLoopInterval); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxLoopInterval(outerCtxID, newLoopInterval); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxLoopInterval(outerCtxID, newLoopInterval); return 0;
 	};
 	int __cdecl UCS_SetIterCount()
 	{
@@ -916,7 +927,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newIterCount); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxIterCount(outerCtxID, newIterCount); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxIterCount(outerCtxID, newIterCount); return 0;
 	};
 	int __cdecl UCS_SetExitCondition()
 	{
@@ -924,7 +935,7 @@ namespace GOTHIC_NAMESPACE
 
 		parser->GetParameter(newExCndFuncIndex); parser->GetParameter(outerCtxID);
 
-		if (gPipelineDepth == 0) ucsManager.setCtxExCndFuncIndex(outerCtxID, newExCndFuncIndex); return 0;
+		if (ucsManager.getCtxIsApplying(outerCtxID)) ucsManager.setCtxExCndFuncIndex(outerCtxID, newExCndFuncIndex); return 0;
 	};
 
 
