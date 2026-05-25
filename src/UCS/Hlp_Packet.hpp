@@ -66,6 +66,8 @@ namespace GOTHIC_NAMESPACE
 	}
 
 
+	// EXTERNALS /////
+
 	void Game_DefineExternals_HlpPacket()
 	{
 		parser->DefineExternal("Hlp_MultInt", Hlp_MultInt, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_VOID);

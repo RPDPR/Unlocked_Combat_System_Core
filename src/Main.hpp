@@ -54,6 +54,7 @@ namespace GOTHIC_NAMESPACE
 	void Game_DefineExternals()
 	{
 		Game_DefineExternals_ApplyDamage();
+		Game_DefineExternals_Pipeline();
 		Game_DefineExternals_DT_Manager();
 		Game_DefineExternals_HlpPacket();
 	}

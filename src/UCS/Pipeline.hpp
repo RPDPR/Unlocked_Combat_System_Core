@@ -58,22 +58,22 @@ namespace GOTHIC_NAMESPACE
 		return result;
 	}
 
-	int Call_PullCustomDamageType(int senderNpc_ID, int receiverNpc_ID, int itemInstance_ID)
+	int Call_PullCustomDamageType(int itemInstance_ID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamageType")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, itemInstance_ID);
+		void* pRet = parser->CallFunc(funcIndex, itemInstance_ID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 8) return -1;
 
 		return dataValue;
 	}
-	int Call_PullCustomDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialPureDamage, int isCrit, int spellID)
+	int Call_PullCustomDamage(int damageType, int initialPureDamage, int isCrit, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialPureDamage, isCrit, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageType, initialPureDamage, isCrit, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -81,12 +81,12 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	float Call_PullMultiplier(int senderNpc_ID, int receiverNpc_ID, int damageType, int isCrit)
+	float Call_PullMultiplier(int damageType, int isCrit)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullMultiplier")); if (funcIndex < 0) return -1.0f;
 
 		zCPar_Symbol* sym = parser->GetSymbol(funcIndex); if (sym == nullptr) return -1.0f;
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, isCrit);
+		void* pRet = parser->CallFunc(funcIndex, damageType, isCrit);
 
 		float dataValue = -1.0f;
 
@@ -104,11 +104,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullMinimalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialMinimalDamage, int spellID)
+	int Call_PullMinimalDamage(int damageType, int initialMinimalDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullMinimalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialMinimalDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageType, initialMinimalDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -116,11 +116,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullPureDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialPureDamage, int spellID)
+	int Call_PullPureDamage(int damageType, int initialPureDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullPureDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialPureDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageType, initialPureDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -128,11 +128,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullTotalDamage(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialTotalDamage, int spellID)
+	int Call_PullTotalDamage(int damageType, int initialTotalDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullTotalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialTotalDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageType, initialTotalDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -140,11 +140,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullProtection(int senderNpc_ID, int receiverNpc_ID, int damageType, int initialProtection, int spellID)
+	int Call_PullProtection(int damageType, int initialProtection, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullProtection")); if (funcIndex < 0) return -2;
 
-		void* pRet = parser->CallFunc(funcIndex, senderNpc_ID, receiverNpc_ID, damageType, initialProtection, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageType, initialProtection, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < -1) return -2;
@@ -156,8 +156,8 @@ namespace GOTHIC_NAMESPACE
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
 	static int gID = -1;
 
-	int attackerInstance = -1;
-	int receiverInstance = -1;
+	oCNpc* sender = nullptr;
+	oCNpc* receiver = nullptr;
 
 	int damageIndex;
 	int customDamageIndex;
@@ -175,8 +175,8 @@ namespace GOTHIC_NAMESPACE
 	{
 		gDamageDescriptor = &dd;
 
-		attackerInstance = dd.pNpcAttacker != nullptr ? dd.pNpcAttacker->GetInstance() : -1;
-		receiverInstance = self != nullptr ? self->GetInstance() : -1;
+		sender = dd.pNpcAttacker != nullptr ? dd.pNpcAttacker : dd.pVobAttacker != nullptr ? (oCNpc*)dd.pVobAttacker : nullptr;
+		receiver = self != nullptr ? self : dd.pVobHit != nullptr ? (oCNpc*)dd.pVobHit : nullptr;;
 
 		auto damageIndexArr = GetDamageIndexArr(dd.enuModeDamage);
 
@@ -185,7 +185,9 @@ namespace GOTHIC_NAMESPACE
 			? -1
 			: damageIndexArr[0];
 
-		pureDamage = Call_PullPureDamage(attackerInstance, receiverInstance, damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
+		Union::StringANSI::Format(zSTRING("hook1: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)sender, (int)receiver, sender != nullptr ? sender->GetInstance() : zSTRING("nothing"), receiver != nullptr ? receiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
+
+		pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
 
 		if (pureDamage >= 0)
 		{
@@ -206,8 +208,8 @@ namespace GOTHIC_NAMESPACE
 		}
 
 		gDamageDescriptor = nullptr;
-		attackerInstance = -1;
-		receiverInstance = -1;
+		sender = nullptr;
+		receiver = nullptr;
 
 		damageIndex = -1;
 		customDamageIndex = -1;
@@ -224,7 +226,7 @@ namespace GOTHIC_NAMESPACE
 	auto Hook_oCNpc_OnDamage_Hit_GetProtection = CreatePartialHook((void*)zSwitch(0x00736510, 0x0066B733), &oCNpc_OnDamage_Hit_GetProtection);
 	void __fastcall oCNpc_OnDamage_Hit_GetProtection(Union::Registers& reg)
 	{
-		protection = Call_PullProtection(attackerInstance, receiverInstance, damageIndex, reg.eax, gDamageDescriptor->nSpellID);
+		protection = Call_PullProtection(damageIndex, reg.eax, gDamageDescriptor->nSpellID);
 
 		if (protection != -1 && protection >= 0)
 		{
@@ -269,7 +271,7 @@ namespace GOTHIC_NAMESPACE
 		{
 			float& previousMultiplier = *(float*)(reg.eax + 0x4C);
 
-			multiplier = Call_PullMultiplier(attackerInstance, receiverInstance, reg.ebp, isCrit);
+			multiplier = Call_PullMultiplier(reg.ebp, isCrit);
 
 			if (multiplier >= 0.0 && multiplier != previousMultiplier)
 			{
@@ -296,7 +298,7 @@ namespace GOTHIC_NAMESPACE
 			int initialTotalDamage = totalDamage > 0 ? totalDamage : 0;
 			int initialMinimalDamage = reg.eax > 0 ? reg.eax : 0;
 
-			totalDamage = Call_PullTotalDamage(attackerInstance, receiverInstance, damageIndex, initialTotalDamage, gDamageDescriptor->nSpellID);
+			totalDamage = Call_PullTotalDamage(damageIndex, initialTotalDamage, gDamageDescriptor->nSpellID);
 
 			if (totalDamage >= 0)
 			{
@@ -307,7 +309,7 @@ namespace GOTHIC_NAMESPACE
 				reg.eax = initialTotalDamage;
 			}
 
-			minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, initialMinimalDamage, gDamageDescriptor->nSpellID);
+			minimalDamage = Call_PullMinimalDamage(damageIndex, initialMinimalDamage, gDamageDescriptor->nSpellID);
 
 			if (minimalDamage >= 0 && reg.eax < minimalDamage)
 			{
@@ -328,7 +330,9 @@ namespace GOTHIC_NAMESPACE
 			int& resultTotalDamage = *(int*)(reg.esp + 0xFC);
 			isCrit = *(int*)(reg.esp + 0x11C);
 
-			totalDamage = Call_PullTotalDamage(attackerInstance, receiverInstance, damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
+			Union::StringANSI::Format(zSTRING("hook2: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)sender, (int)receiver, sender != nullptr ? sender->GetInstance() : zSTRING("nothing"), receiver != nullptr ? receiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
+
+			totalDamage = Call_PullTotalDamage(damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
 
 			if (totalDamage >= 0)
 			{
@@ -336,7 +340,7 @@ namespace GOTHIC_NAMESPACE
 				reg.edi = totalDamage;
 			}
 
-			multiplier = Call_PullMultiplier(attackerInstance, receiverInstance, damageIndex, isCrit);
+			multiplier = Call_PullMultiplier(damageIndex, isCrit);
 
 			if (multiplier >= 0.0 && ((!isCrit && multiplier != 0.1) || (isCrit && multiplier != 1.0)))
 			{
@@ -350,7 +354,7 @@ namespace GOTHIC_NAMESPACE
 			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("ID: ")).StdPrint();
 			Union::StringANSI(gID >= 0 ? zSTRING(gID) : zSTRING("nothing")).StdPrintLine();
-			Union::StringANSI::Format(zSTRING("Sender:: {0}, ReceiverAdr: {1}"), gDamageDescriptor->pNpcAttacker != nullptr ? gDamageDescriptor->pNpcAttacker->GetName(0) : zSTRING("nothing"), gDamageDescriptor->pVobHit != nullptr ? (int)gDamageDescriptor->pVobHit : zSTRING("nothing")).StdPrintLine();
+			Union::StringANSI::Format(zSTRING("hook3: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)sender, (int)receiver, sender != nullptr ? sender->GetInstance() : zSTRING("nothing"), receiver != nullptr ? receiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
 			Union::StringANSI(zSTRING("TD::: ")).StdPrint();
 			Union::StringANSI(zSTRING(reg.edi >= 0 ? reg.edi : zSTRING("nothing"))).StdPrintLine(); Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
@@ -359,7 +363,7 @@ namespace GOTHIC_NAMESPACE
 		auto Hook_oCNpc_OnDamage_Hit_GetMinimalDamage = CreatePartialHook((void*)0x0066CAA0, &oCNpc_OnDamage_Hit_GetMinimalDamage);
 		void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg)
 		{
-			minimalDamage = Call_PullMinimalDamage(attackerInstance, receiverInstance, damageIndex, reg.eax, gDamageDescriptor->nSpellID);
+			minimalDamage = Call_PullMinimalDamage(damageIndex, reg.eax, gDamageDescriptor->nSpellID);
 
 			if (minimalDamage >= 0)
 			{
@@ -380,11 +384,11 @@ namespace GOTHIC_NAMESPACE
 				reg.eax = 0;
 			};
 
-			customDamageIndex = Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customDamageIndex = Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
 
 			if (customDamageIndex >= 0)
 			{
-				int customDamage = Call_PullCustomDamage(attackerInstance, receiverInstance, customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
+				int customDamage = Call_PullCustomDamage(customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
 
 				if (customDamage >= 0)
 				{
@@ -403,11 +407,11 @@ namespace GOTHIC_NAMESPACE
 				reg.edi = 0;
 			};
 
-			customDamageIndex = customDamageIndex >= 8 ? customDamageIndex : Call_PullCustomDamageType(attackerInstance, receiverInstance, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customDamageIndex = customDamageIndex >= 8 ? customDamageIndex : Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
 
 			if (customDamageIndex >= 8)
 			{
-				int customDamage = Call_PullCustomDamage(attackerInstance, receiverInstance, customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
+				int customDamage = Call_PullCustomDamage(customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
 
 				if (customDamage >= 0)
 				{
@@ -420,5 +424,26 @@ namespace GOTHIC_NAMESPACE
 			}
 
 		#endif
+	}
+
+
+	// EXTERNALS /////
+
+	int __cdecl Hlp_GetDamageSender()
+	{
+		parser->SetReturn(sender != nullptr ? sender : nullptr); return 0;
+	};
+
+	int __cdecl Hlp_GetDamageReceiver()
+	{
+		parser->SetReturn(receiver != nullptr ? receiver : nullptr); return 0;
+	};
+
+
+	void Game_DefineExternals_Pipeline()
+	{
+		parser->DefineExternal("Hlp_GetDamageSender", Hlp_GetDamageSender, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+
+		parser->DefineExternal("Hlp_GetDamageReceiver", Hlp_GetDamageReceiver, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 	}
 }
