@@ -231,7 +231,7 @@ namespace GOTHIC_NAMESPACE
 			{
 				if (currCtx->loopInterval < 500.0f ||
 					currCtx->iterCount < 0 && currCtx->exCndFuncIndex < 0 ||
-					(currCtx->currIter == -1) != (currCtx->lastIterTime == -1.0f))
+					(!!currCtx->currIter) != (!!currCtx->lastIterTime))
 					return false;
 			}
 
@@ -259,11 +259,11 @@ namespace GOTHIC_NAMESPACE
 
 			if (it == ctxCollection.end()) return;
 
+			Union::StringANSI::Format(zSTRING("Ctx with id: {0}, was closed! Params: type: {1}, isCtxValid: {2}, isRn: {3}, isCmp: {4}, dmg: {5}, currIter: {6}, currTime: {7}, lastIterTime: {8}, loopInterval: {9}, "), it->second.id, it->second.type, isCtxValid(getCtx(it->second.id)), getCtxIsRunning(it->second.id), getCtxIsCompleted(it->second.id), getCtxDamage(it->second.id), getCtxCurrIter(it->second.id), it->second.currIter, it->second.lastIterTime, it->second.loopInterval).StdPrintLine();
+
 			it->second.isApplying = false;
 			it->second.isRunning = false;
 			it->second.isCompleted = true;
-
-			Union::StringANSI::Format(zSTRING("Ctx with id: {0}, was closed! Params: type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currTime: {5}, lastIterTime: {6}, loopInterval: {7}, "), it->second.id, it->second.type, getCtxIsRunning(it->second.id), getCtxIsCompleted(it->second.id), getCtxDamage(it->second.id), ogame->GetWorldTimer()->GetFullTime(), it->second.lastIterTime, it->second.loopInterval).StdPrintLine();
 		}
 
 		void updateCtxQueue()
@@ -279,8 +279,6 @@ namespace GOTHIC_NAMESPACE
 
 			for (auto it = ctxQueue.begin(); it != ctxQueue.end();)
 			{
-				oCNpc::oSDamageDescriptor dd{};
-
 				ctx* currCtx = getCtx(*it);
 
 				if (!isCtxValid(currCtx) || !currCtx->isRunning || currCtx->isCompleted)
@@ -306,10 +304,24 @@ namespace GOTHIC_NAMESPACE
 
 				if (currCtx->type == CTX_REGULAR)
 				{
+					// filling damage descriptor
+					
+					oCNpc::oSDamageDescriptor dd {};
+
+					dd.dwFieldsValid =
+						oCNpc::oEDamageDescFlag_Damage |
+						oCNpc::oEDamageDescFlag_DamageType |
+						oCNpc::oEDamageDescFlag_Attacker |
+						oCNpc::oEDamageDescFlag_Npc |
+						oCNpc::oEDamageDescFlag_VisualFX |
+						oCNpc::oEDamageDescFlag_SpellID |
+						oCNpc::oEDamageDescFlag_HitLocation |
+						oCNpc::oEDamageDescFlag_FlyDirection;
+
 					dd.pVobAttacker = currCtx->damageSender;
 					dd.pNpcAttacker = currCtx->damageSender;
 					dd.pVobHit = currCtx->damageReceiver;
-					dd.enuModeDamage = currCtx->damageIndex;
+					dd.enuModeDamage = GetDamageType(currCtx->damageIndex);
 					dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
 					dd.fDamageTotal = currCtx->damage;
 					dd.nSpellID = currCtx->spellID;
@@ -327,8 +339,6 @@ namespace GOTHIC_NAMESPACE
 						currCtx->damageReceiver->GetPositionWorld() -
 						currCtx->damageSender->GetPositionWorld()
 					).Normalize();
-
-					dd.dwFieldsValid = 0;
 
 					// damage applying
 					currCtx->isApplying = true;
@@ -361,7 +371,7 @@ namespace GOTHIC_NAMESPACE
 
 					bool isReceiverUnconscious =
 					(
-						currCtx->damageReceiver->IsUnconscious()
+						!currCtx->damageReceiver->IsMonster() && currCtx->damageReceiver->IsUnconscious()
 					);
 
 					bool isReceiverDead =
@@ -372,6 +382,7 @@ namespace GOTHIC_NAMESPACE
 
 					if (isItersExceeded || isReceiverUnconscious || isReceiverDead)
 					{
+						Union::StringANSI::Format(zSTRING("closed in unexpected place. isItersExceeded: {0}, isRecDead: {1}, isRecUnc: {2}"), isItersExceeded, isReceiverDead, isReceiverUnconscious).StdPrintLine();
 						closeCtx(*it);
 						it = ctxQueue.erase(it); continue;
 					}
@@ -389,10 +400,25 @@ namespace GOTHIC_NAMESPACE
 					currCtx->currIter++;
 					currCtx->lastIterTime = currTime;
 
+
+					// filling damage descriptor
+
+					oCNpc::oSDamageDescriptor dd {};
+
+					dd.dwFieldsValid =
+						oCNpc::oEDamageDescFlag_Damage |
+						oCNpc::oEDamageDescFlag_DamageType |
+						oCNpc::oEDamageDescFlag_Attacker |
+						oCNpc::oEDamageDescFlag_Npc |
+						oCNpc::oEDamageDescFlag_VisualFX |
+						oCNpc::oEDamageDescFlag_SpellID |
+						oCNpc::oEDamageDescFlag_HitLocation |
+						oCNpc::oEDamageDescFlag_FlyDirection;
+
 					dd.pVobAttacker = currCtx->damageSender;
 					dd.pNpcAttacker = currCtx->damageSender;
 					dd.pVobHit = currCtx->damageReceiver;
-					dd.enuModeDamage = currCtx->damageIndex;
+					dd.enuModeDamage = GetDamageType(currCtx->damageIndex);
 					dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
 					dd.fDamageTotal = currCtx->damage;
 					dd.nSpellID = currCtx->spellID;
@@ -411,13 +437,12 @@ namespace GOTHIC_NAMESPACE
 						currCtx->damageSender->GetPositionWorld()
 					).Normalize();
 
-					dd.dwFieldsValid = 1 << 1 << 1 << 1 << 1 << 1 << 1 << 1;
-
 					Union::StringANSI::Format(zSTRING("APPLYING CTX WITH ID {0} AND ITER {1} AND DAMAGE {2}"), currCtx->id, currCtx->currIter, currCtx->damage).StdPrintLine();
+					Union::StringANSI::Format(zSTRING("Sender here is {0} AND receiverAdr is {1}"), currCtx->damageSender->GetName(0), (int)currCtx->damageReceiver).StdPrintLine();
 
 					// damage applying
 					currCtx->isApplying = true;
-					Union::StringANSI::Format(zSTRING("dd.aryDamage {0} AND dd.fDamageTotal {1} AND damageType {2}"), dd.aryDamage[dd.enuModeDamage], dd.fDamageTotal, dd.enuModeDamage).StdPrintLine();
+					Union::StringANSI::Format(zSTRING("filedsValid: {0}, dd.aryDamage {1} AND dd.fDamageTotal {2} AND damageType {3}"), dd.dwFieldsValid, dd.aryDamage[dd.enuModeDamage], dd.fDamageTotal, dd.enuModeDamage).StdPrintLine();
 					currCtx->damageReceiver->OnDamage(dd);
 					currCtx->isApplying = false;
 					// damage applying
@@ -671,7 +696,7 @@ namespace GOTHIC_NAMESPACE
 		parser->GetParameter(fxID);
 		outerCtxID = parser->PopVarAddress();
 
-		Union::StringANSI::Format(zSTRING("STARTLOOP outerCtxID: {0}, fxID: {1}!"), outerCtxID, fxID).StdPrintLine();
+		Union::StringANSI::Format(zSTRING("STARTLOOP outerCtxID: {0}, fxID: {1}, receiverAdr: {2}!"), outerCtxID, fxID, (int)damageReceiver).StdPrintLine();
 
 		if (damageSender != nullptr && damageReceiver != nullptr && fxID >= 0)
 		{

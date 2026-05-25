@@ -350,7 +350,7 @@ namespace GOTHIC_NAMESPACE
 			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("ID: ")).StdPrint();
 			Union::StringANSI(gID >= 0 ? zSTRING(gID) : zSTRING("nothing")).StdPrintLine();
-			Union::StringANSI(zSTRING("ISRN:: ")).StdPrint();
+			Union::StringANSI::Format(zSTRING("Sender:: {0}, ReceiverAdr: {1}"), gDamageDescriptor->pNpcAttacker != nullptr ? gDamageDescriptor->pNpcAttacker->GetName(0) : zSTRING("nothing"), gDamageDescriptor->pVobHit != nullptr ? (int)gDamageDescriptor->pVobHit : zSTRING("nothing")).StdPrintLine();
 			Union::StringANSI(zSTRING("TD::: ")).StdPrint();
 			Union::StringANSI(zSTRING(reg.edi >= 0 ? reg.edi : zSTRING("nothing"))).StdPrintLine(); Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
