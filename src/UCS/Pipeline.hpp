@@ -1,63 +1,6 @@
 
 namespace GOTHIC_NAMESPACE
 {
-	int GetDamageIndex(oEDamageType damageType)
-	{
-		if (damageType == oEDamageType_Barrier) return oEDamageIndex_Barrier;
-		if (damageType == oEDamageType_Blunt)   return oEDamageIndex_Blunt;
-		if (damageType == oEDamageType_Edge)    return oEDamageIndex_Edge;
-		if (damageType == oEDamageType_Fire)    return oEDamageIndex_Fire;
-		if (damageType == oEDamageType_Fly)     return oEDamageIndex_Fly;
-		if (damageType == oEDamageType_Magic)   return oEDamageIndex_Magic;
-		if (damageType == oEDamageType_Point)   return oEDamageIndex_Point;
-		if (damageType == oEDamageType_Fall)    return oEDamageIndex_Fall;
-
-		return -1;
-	}
-	oEDamageType GetDamageType(oEDamageIndex damageIndex)
-	{
-		if (damageIndex == oEDamageIndex_Barrier) return oEDamageType_Barrier;
-		if (damageIndex == oEDamageIndex_Blunt)   return oEDamageType_Blunt;
-		if (damageIndex == oEDamageIndex_Edge)    return oEDamageType_Edge;
-		if (damageIndex == oEDamageIndex_Fire)    return oEDamageType_Fire;
-		if (damageIndex == oEDamageIndex_Fly)     return oEDamageType_Fly;
-		if (damageIndex == oEDamageIndex_Magic)   return oEDamageType_Magic;
-		if (damageIndex == oEDamageIndex_Point)   return oEDamageType_Point;
-		if (damageIndex == oEDamageIndex_Fall)    return oEDamageType_Fall;
-
-		return oEDamageType_Unknown;
-	}
-	std::vector<int> GetDamageIndexArr(unsigned long damageMask)
-	{
-		std::vector<int> result;
-
-		if (damageMask & oEDamageType_Barrier)
-			result.push_back(oEDamageIndex_Barrier);
-
-		if (damageMask & oEDamageType_Blunt)
-			result.push_back(oEDamageIndex_Blunt);
-
-		if (damageMask & oEDamageType_Edge)
-			result.push_back(oEDamageIndex_Edge);
-
-		if (damageMask & oEDamageType_Fire)
-			result.push_back(oEDamageIndex_Fire);
-
-		if (damageMask & oEDamageType_Fly)
-			result.push_back(oEDamageIndex_Fly);
-
-		if (damageMask & oEDamageType_Magic)
-			result.push_back(oEDamageIndex_Magic);
-
-		if (damageMask & oEDamageType_Point)
-			result.push_back(oEDamageIndex_Point);
-
-		if (damageMask & oEDamageType_Fall)
-			result.push_back(oEDamageIndex_Fall);
-
-		return result;
-	}
-
 	int Call_PullCustomDamageType(int itemInstance_ID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamageType")); if (funcIndex < 0) return -1;
@@ -156,8 +99,8 @@ namespace GOTHIC_NAMESPACE
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
 	static int gID = -1;
 
-	oCNpc* sender = nullptr;
-	oCNpc* receiver = nullptr;
+	oCNpc* damageSender = nullptr;
+	oCNpc* damageReceiver = nullptr;
 
 	int damageIndex;
 	int customDamageIndex;
@@ -175,8 +118,8 @@ namespace GOTHIC_NAMESPACE
 	{
 		gDamageDescriptor = &dd;
 
-		sender = dd.pNpcAttacker != nullptr ? dd.pNpcAttacker : dd.pVobAttacker != nullptr ? (oCNpc*)dd.pVobAttacker : nullptr;
-		receiver = self != nullptr ? self : dd.pVobHit != nullptr ? (oCNpc*)dd.pVobHit : nullptr;;
+		damageSender = dd.pNpcAttacker != nullptr ? dd.pNpcAttacker : dd.pVobAttacker != nullptr ? (oCNpc*)dd.pVobAttacker : nullptr;
+		damageReceiver = self != nullptr ? self : dd.pVobHit != nullptr ? (oCNpc*)dd.pVobHit : nullptr;
 
 		auto damageIndexArr = GetDamageIndexArr(dd.enuModeDamage);
 
@@ -185,7 +128,7 @@ namespace GOTHIC_NAMESPACE
 			? -1
 			: damageIndexArr[0];
 
-		Union::StringANSI::Format(zSTRING("hook1: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)sender, (int)receiver, sender != nullptr ? sender->GetInstance() : zSTRING("nothing"), receiver != nullptr ? receiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
+		Union::StringANSI::Format(zSTRING("hook1: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)damageSender, (int)damageReceiver, damageSender != nullptr ? damageSender->GetInstance() : zSTRING("nothing"), damageReceiver != nullptr ? damageReceiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
 
 		pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
 
@@ -208,8 +151,8 @@ namespace GOTHIC_NAMESPACE
 		}
 
 		gDamageDescriptor = nullptr;
-		sender = nullptr;
-		receiver = nullptr;
+		damageSender = nullptr;
+		damageReceiver = nullptr;
 
 		damageIndex = -1;
 		customDamageIndex = -1;
@@ -330,7 +273,7 @@ namespace GOTHIC_NAMESPACE
 			int& resultTotalDamage = *(int*)(reg.esp + 0xFC);
 			isCrit = *(int*)(reg.esp + 0x11C);
 
-			Union::StringANSI::Format(zSTRING("hook2: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)sender, (int)receiver, sender != nullptr ? sender->GetInstance() : zSTRING("nothing"), receiver != nullptr ? receiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
+			Union::StringANSI::Format(zSTRING("hook2: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)damageSender, (int)damageReceiver, damageSender != nullptr ? damageSender->GetInstance() : zSTRING("nothing"), damageReceiver != nullptr ? damageReceiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
 
 			totalDamage = Call_PullTotalDamage(damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
 
@@ -354,7 +297,7 @@ namespace GOTHIC_NAMESPACE
 			Union::StringANSI(zSTRING(" ")).StdPrintLine();
 			Union::StringANSI(zSTRING("ID: ")).StdPrint();
 			Union::StringANSI(gID >= 0 ? zSTRING(gID) : zSTRING("nothing")).StdPrintLine();
-			Union::StringANSI::Format(zSTRING("hook3: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)sender, (int)receiver, sender != nullptr ? sender->GetInstance() : zSTRING("nothing"), receiver != nullptr ? receiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
+			Union::StringANSI::Format(zSTRING("hook3: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)damageSender, (int)damageReceiver, damageSender != nullptr ? damageSender->GetInstance() : zSTRING("nothing"), damageReceiver != nullptr ? damageReceiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
 			Union::StringANSI(zSTRING("TD::: ")).StdPrint();
 			Union::StringANSI(zSTRING(reg.edi >= 0 ? reg.edi : zSTRING("nothing"))).StdPrintLine(); Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
@@ -429,21 +372,25 @@ namespace GOTHIC_NAMESPACE
 
 	// EXTERNALS /////
 
-	int __cdecl Hlp_GetDamageSender()
+	int __cdecl UCS_GetDamageSender()
 	{
-		parser->SetReturn(sender != nullptr ? sender : nullptr); return 0;
+		parser->SetReturn(damageSender != nullptr ? damageSender : gDamageDescriptor->pNpcAttacker != nullptr ? gDamageDescriptor->pNpcAttacker : gDamageDescriptor->pVobAttacker != nullptr ? (oCNpc*)gDamageDescriptor->pVobAttacker : nullptr);
+		
+		return 0;
 	};
 
-	int __cdecl Hlp_GetDamageReceiver()
+	int __cdecl UCS_GetDamageReceiver()
 	{
-		parser->SetReturn(receiver != nullptr ? receiver : nullptr); return 0;
+		parser->SetReturn(damageReceiver != nullptr ? damageReceiver : gDamageDescriptor->pVobHit != nullptr ? (oCNpc*)gDamageDescriptor->pVobHit : nullptr);
+		
+		return 0;
 	};
 
 
 	void Game_DefineExternals_Pipeline()
 	{
-		parser->DefineExternal("Hlp_GetDamageSender", Hlp_GetDamageSender, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_GetDamageSender", UCS_GetDamageSender, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 
-		parser->DefineExternal("Hlp_GetDamageReceiver", Hlp_GetDamageReceiver, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_GetDamageReceiver", UCS_GetDamageReceiver, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 	}
 }
