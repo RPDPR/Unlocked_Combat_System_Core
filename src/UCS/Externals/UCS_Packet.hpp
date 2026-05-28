@@ -30,8 +30,6 @@ namespace GOTHIC_NAMESPACE
 			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
 			ucsManager.createFxProto(outerFxProtoID, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
-
-			Union::StringANSI::Format(zSTRING("created FXProto, id: {0}, outerID: {1}"), outerFxProtoID != nullptr ? *outerFxProtoID : zSTRING("nothing"), outerFxProtoID != nullptr ? *outerFxProtoID : -1).StdPrintLine();
 		}
 
 		return 0;
@@ -74,16 +72,9 @@ namespace GOTHIC_NAMESPACE
 		outerFxProtoID = parser->PopVarAddress();
 		outerFxID = parser->PopVarAddress();
 
-		Union::StringANSI::Format(zSTRING("Start FX, outerFxID: {0}, outerFxProtoID: {1}"), outerFxID != nullptr ? *outerFxID : zSTRING("nothing"), outerFxProtoID != nullptr ? *outerFxProtoID : zSTRING("nothing")).StdPrintLine();
-
 		if (outerFxID != nullptr && outerFxProtoID != nullptr && damageSender != nullptr && damageReceiver != nullptr)
 		{
 			ucsManager.startFx(outerFxID, outerFxProtoID, damageSender, damageReceiver);
-
-			Union::StringANSI::Format(zSTRING("STARTFX ON NPC PAIR {0}, {1}"), damageSender->GetName(0), damageReceiver->GetName(0)).StdPrintLine();
-			Union::StringANSI::Format(zSTRING("fxID has been returned with id {0}"), *outerFxID).StdPrintLine();
-
-			Union::StringANSI::Format(zSTRING("fxProtoID has been returned with id {0}"), *outerFxProtoID).StdPrintLine();
 		}
 
 		return 0;
@@ -190,8 +181,6 @@ namespace GOTHIC_NAMESPACE
 		outerFxID = parser->PopVarAddress();
 
 		int damage = ucsManager.getFxDamage(outerFxID, damageSender, damageReceiver);
-
-		Union::StringANSI::Format(zSTRING("getDamage: {0}"), damage).StdPrintLine();
 
 		parser->SetReturn(damage); return 0;
 	};

@@ -341,8 +341,6 @@ namespace GOTHIC_NAMESPACE
 
 				if (isCtxValid(currCtx) && currCtx->isRunning) return;
 
-				Union::StringANSI::Format(zSTRING("isCtxValid in addCtx: {0}, isRunning: {1}"), isCtxValid(currCtx), currCtx ? currCtx->isRunning : -1).StdPrintLine();
-
 				if (!isFxValid(currFx)) return;
 
 
@@ -397,8 +395,6 @@ namespace GOTHIC_NAMESPACE
 
 				if (!currCtx->isRunning || currCtx->isApplying || currCtx->isCompleted) return;
 
-				Union::StringANSI::Format(zSTRING("Ctx with id: {0}, was closed! Params: type: {1}, isCtxValid: {2}, isRn: {3}, isCmp: {4}, dmg: {5}, currIter: {6}, currTime: {7}, lastIterTime: {8}, loopInterval: {9}, "), currCtx->id, currCtx->type, isCtxValid(currCtx), currCtx->isRunning, currCtx->isCompleted, currCtx->damage, currCtx->currIter, ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
-
 				currCtx->isRunning = false;
 				currCtx->isCompleted = true;
 
@@ -412,8 +408,6 @@ namespace GOTHIC_NAMESPACE
 				if (!isCtxValid(currCtx)) return;
 
 				if (!currCtx->isRunning || currCtx->isApplying || currCtx->isCompleted) return;
-
-				Union::StringANSI::Format(zSTRING("Ctx with id: {0}, was closed! Params: type: {1}, isCtxValid: {2}, isRn: {3}, isCmp: {4}, dmg: {5}, currIter: {6}, currTime: {7}, lastIterTime: {8}, loopInterval: {9}, "), currCtx->id, currCtx->type, isCtxValid(currCtx), currCtx->isRunning, currCtx->isCompleted, currCtx->damage, currCtx->currIter, ogame->GetWorldTimer()->GetFullTime(), currCtx->lastIterTime, currCtx->loopInterval).StdPrintLine();
 
 				fx* currFx = getFx(currCtx->fxID);
 
@@ -476,21 +470,11 @@ namespace GOTHIC_NAMESPACE
 			void clearCtxCollection()
 			{
 				ctxCollection.clear();
-				Union::StringANSI::Format(zSTRING("ctxCollection was cleared! ctxCollection size: {0}"), ctxCollection.size()).StdPrintLine();
 			}
 
 
 			void updateCtxQueue()
 			{
-				/* for (auto& [id, currFx] : fxProtoCollection)
-				{
-					Union::StringANSI::Format(zSTRING("fxProtoCollection.id {0}: fxProtoID: {1}"), id, currFx.id).StdPrintLine();
-				} */
-				/* for (auto& [id, currCtx] : ctxCollection)
-				{
-					Union::StringANSI::Format(zSTRING("size: {0}, ctxCollection.id {1}: ctxID: {2}"), ctxCollection.size(), id, currCtx.id).StdPrintLine();
-				} */
-
 				for (auto it = ctxQueue.begin(); it != ctxQueue.end();)
 				{
 					ctx* currCtx = getCtx(*it);
@@ -516,7 +500,6 @@ namespace GOTHIC_NAMESPACE
 							it = ctxQueue.erase(it); continue;
 						}
 					}
-					//Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currIter: {5}, iterCount: {6}, exCndFuncIdx: {7}, "), currCtx->id, currCtx->type, getCtxIsRunning(currCtx->fxID, currCtx->damageSender, currCtx->damageReceiver), getCtxIsCompleted(currCtx->fxID, currCtx->damageSender, currCtx->damageReceiver), getCtxDamage(currCtx->fxID, currCtx->damageSender, currCtx->damageReceiver), currCtx->currIter, currCtx->iterCount, currCtx->exCndFuncIndex).StdPrintLine();
 
 
 					if (currCtx->type == CTX_REGULAR)
@@ -599,7 +582,6 @@ namespace GOTHIC_NAMESPACE
 
 						if (isItersExceeded || isReceiverUnconscious || isReceiverDead)
 						{
-							Union::StringANSI::Format(zSTRING("closed in unexpected place. isItersExceeded: {0}, isRecDead: {1}, isRecUnc: {2}"), isItersExceeded, isReceiverDead, isReceiverUnconscious).StdPrintLine();
 							closeCtx(*it);
 							it = ctxQueue.erase(it); continue;
 						}
@@ -611,7 +593,6 @@ namespace GOTHIC_NAMESPACE
 
 						if (isFirstIter)
 						{
-							Union::StringANSI::Format(zSTRING("FIRST ITER, YEAH")).StdPrintLine();
 							currCtx->currIter = 0;
 						}
 
@@ -655,8 +636,6 @@ namespace GOTHIC_NAMESPACE
 							currCtx->damageSender->GetPositionWorld()
 						).Normalize();
 
-						Union::StringANSI::Format(zSTRING("APPLYING CTX WITH ID {0} AND ITER {1} AND DAMAGE {2}"), currCtx->id, currCtx->currIter, currCtx->damage).StdPrintLine();
-
 						// damage applying
 						currCtx->isApplying = true;
 						currCtx->damageReceiver->OnDamage(dd);
@@ -671,7 +650,6 @@ namespace GOTHIC_NAMESPACE
 			void clearCtxQueue()
 			{
 				ctxQueue.clear();
-				Union::StringANSI::Format(zSTRING("ctxQueue was cleared! ctxQueue size: {0}"), ctxQueue.size()).StdPrintLine();
 			}
 
 

@@ -97,7 +97,6 @@ namespace GOTHIC_NAMESPACE
 
 	// UCS Pipeline /////
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
-	static int gID = -1;
 
 	oCNpc* damageSender = nullptr;
 	oCNpc* damageReceiver = nullptr;
@@ -127,8 +126,6 @@ namespace GOTHIC_NAMESPACE
 			damageIndexArr.empty()
 			? -1
 			: damageIndexArr[0];
-
-		Union::StringANSI::Format(zSTRING("hook1: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)damageSender, (int)damageReceiver, damageSender != nullptr ? damageSender->GetInstance() : zSTRING("nothing"), damageReceiver != nullptr ? damageReceiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
 
 		pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
 
@@ -273,8 +270,6 @@ namespace GOTHIC_NAMESPACE
 			int& resultTotalDamage = *(int*)(reg.esp + 0xFC);
 			isCrit = *(int*)(reg.esp + 0x11C);
 
-			Union::StringANSI::Format(zSTRING("hook2: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)damageSender, (int)damageReceiver, damageSender != nullptr ? damageSender->GetInstance() : zSTRING("nothing"), damageReceiver != nullptr ? damageReceiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
-
 			totalDamage = Call_PullTotalDamage(damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
 
 			if (totalDamage >= 0)
@@ -291,15 +286,6 @@ namespace GOTHIC_NAMESPACE
 
 				reg.eip = (int)0x0066CA8A;
 			}
-
-			gID++;
-
-			Union::StringANSI(zSTRING(" ")).StdPrintLine();
-			Union::StringANSI(zSTRING("ID: ")).StdPrint();
-			Union::StringANSI(gID >= 0 ? zSTRING(gID) : zSTRING("nothing")).StdPrintLine();
-			Union::StringANSI::Format(zSTRING("hook3: SenderAdr: {0}, ReceiverAdr: {1}, SenderInst: {2}, ReceiverInst: {3}"), (int)damageSender, (int)damageReceiver, damageSender != nullptr ? damageSender->GetInstance() : zSTRING("nothing"), damageReceiver != nullptr ? damageReceiver->GetInstance() : zSTRING("nothing")).StdPrintLine();
-			Union::StringANSI(zSTRING("TD::: ")).StdPrint();
-			Union::StringANSI(zSTRING(reg.edi >= 0 ? reg.edi : zSTRING("nothing"))).StdPrintLine(); Union::StringANSI(zSTRING(" ")).StdPrintLine();
 		}
 
 		void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg);
