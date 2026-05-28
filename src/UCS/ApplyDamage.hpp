@@ -66,6 +66,7 @@ namespace GOTHIC_NAMESPACE
 		struct fxProto
 		{
 			int id;
+			int* outerID;
 
 			int damage;
 			oEDamageIndex damageIndex;
@@ -82,6 +83,7 @@ namespace GOTHIC_NAMESPACE
 		struct fx
 		{
 			int id;
+			int* outerID;
 		};
 
 		std::unordered_map<int, fx> fxCollection;
@@ -146,16 +148,16 @@ namespace GOTHIC_NAMESPACE
 				currFxProto->damageIndex >= oEDamageIndex_MAX ||
 				currFxProto->spellID < -1 ||
 				currFxProto->dontKill < 0 ||
-				currFxProto->loopInterval < 250.0f ||
+				currFxProto->loopInterval < 100.0f ||
 				currFxProto->iterCount < 0 && currFxProto->exCndFuncIndex < 0)
 				return false;
 
 			return true;
 		}
 
-		int addFxProto
+		void addFxProto
 		(
-			int outerFxProtoID,
+			int* outerFxProtoID,
 			int damage,
 			oEDamageIndex damageIndex,
 			int spellID,
@@ -166,15 +168,19 @@ namespace GOTHIC_NAMESPACE
 			int exCndFuncIndex
 		)
 		{
-			fxProto* currFxProto = getFxProto(outerFxProtoID);
+			fxProto* currFxProto = getFxProto(*outerFxProtoID);
 
-			if (currFxProto && isFxProtoValid(currFxProto))
-				return outerFxProtoID;
+			if (currFxProto && currFxProto->outerID == outerFxProtoID && isFxProtoValid(currFxProto))
+			{
+				*currFxProto->outerID = currFxProto->id; return;
+			}
 
 
 			fxProto newFxProto{};
 
 			newFxProto.id = nextFxProtoID++;
+			newFxProto.outerID = outerFxProtoID;
+			*newFxProto.outerID = newFxProto.id;
 
 			newFxProto.damage = damage;
 			newFxProto.damageIndex = damageIndex;
@@ -186,8 +192,6 @@ namespace GOTHIC_NAMESPACE
 			newFxProto.exCndFuncIndex = exCndFuncIndex;
 
 			fxProtoCollection[newFxProto.id] = newFxProto;
-
-			return newFxProto.id;
 		}
 
 
@@ -200,26 +204,6 @@ namespace GOTHIC_NAMESPACE
 			return &it->second;
 		}
 
-		int addFx
-		(
-			int outerFxID
-		)
-		{
-			fx* currFx = getFx(outerFxID);
-
-			if (currFx)
-				return outerFxID;
-
-
-			fx newFx{};
-
-			newFx.id = nextFxID++;
-
-			fxCollection[newFx.id] = newFx;
-
-			return newFx.id;
-		}
-
 		bool isFxValid(fx* currFx)
 		{
 			if (currFx == nullptr ||
@@ -227,6 +211,28 @@ namespace GOTHIC_NAMESPACE
 				return false;
 
 			return true;
+		}
+
+		void addFx
+		(
+			int* outerFxID
+		)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID && isFxValid(currFx))
+			{
+				*currFx->outerID = currFx->id; return;
+			}
+
+
+			fx newFx{};
+
+			newFx.id = nextFxID++;
+			newFx.outerID = outerFxID;
+			*newFx.outerID = newFx.id;
+
+			fxCollection[newFx.id] = newFx;
 		}
 
 
@@ -251,7 +257,7 @@ namespace GOTHIC_NAMESPACE
 			return nullptr;
 		}
 
-		int addCtx
+		void addCtx
 		(
 			int fxID,
 			int fxProtoID,
@@ -262,10 +268,14 @@ namespace GOTHIC_NAMESPACE
 			ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
 			fxProto* currFxProto = getFxProto(fxProtoID);
 
-			if (currCtx && currCtx->isRunning)
-				return -1;
-			if (!isFxProtoValid(currFxProto))
-				return -1;
+			if (currCtx && currCtx->isRunning) {
+				Union::StringANSI::Format(zSTRING("addCtx returned -1 cuz of this 1 branch")).StdPrintLine();
+				return;
+			}
+			if (!isFxProtoValid(currFxProto)) {
+				Union::StringANSI::Format(zSTRING("addCtx returned -1 cuz of this 2 branch")).StdPrintLine();
+				return;
+			}
 
 
 			ctx newCtx{};
@@ -287,10 +297,8 @@ namespace GOTHIC_NAMESPACE
 			newCtx.exCndFuncIndex = currFxProto->exCndFuncIndex;
 
 			ctxCollection[newCtx.id] = newCtx;
-
-			return newCtx.id;
 		}
-		int addCtx
+		void addCtx
 		(
 			int fxID,
 			oCNpc* damageSender,
@@ -308,13 +316,13 @@ namespace GOTHIC_NAMESPACE
 			ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
 
 			if (currCtx && currCtx->isRunning)
-				return -1;
+				return;
 
 
 			ctx newCtx{};
 
 			newCtx.id = nextCtxID++;
-			newCtx.type = (loopInterval >= 250.0f) && (iterCount >= 0 || exCndFuncIndex >= 0) ? CTX_LOOP : CTX_REGULAR;
+			newCtx.type = (loopInterval >= 100.0f) && (iterCount >= 0 || exCndFuncIndex >= 0) ? CTX_LOOP : CTX_REGULAR;
 			newCtx.fxID = fxID;
 
 			newCtx.damageSender = damageSender;
@@ -329,8 +337,6 @@ namespace GOTHIC_NAMESPACE
 			newCtx.exCndFuncIndex = exCndFuncIndex;
 
 			ctxCollection[newCtx.id] = newCtx;
-
-			return newCtx.id;
 		}
 
 		bool isCtxValid(ctx* currCtx)
@@ -352,7 +358,7 @@ namespace GOTHIC_NAMESPACE
 
 			if (currCtx->type == CTX_LOOP)
 			{
-				if (currCtx->loopInterval < 250.0f ||
+				if (currCtx->loopInterval < 100.0f ||
 					currCtx->iterCount < 0 && currCtx->exCndFuncIndex < 0 ||
 					(!!currCtx->currIter) != (!!currCtx->lastIterTime))
 					return false;
@@ -389,6 +395,21 @@ namespace GOTHIC_NAMESPACE
 			it->second.isCompleted = true;
 		}
 
+		void updateCtxCollection()
+		{
+			for (auto it = ctxCollection.begin(); it != ctxCollection.end();)
+			{
+				ctx* currCtx = getCtx(it->first);
+
+				if (!currCtx->isRunning && !currCtx->isCompleted && !currCtx->isApplying)
+				{
+					runCtx(currCtx->id);
+				}
+
+				++it;
+			}
+		}
+
 		void updateCtxQueue()
 		{
 			/* for (auto& [id, currFx] : fxProtoCollection)
@@ -419,15 +440,13 @@ namespace GOTHIC_NAMESPACE
 					void* pRet = parser->CallFunc(currCtx->exCndFuncIndex, currCtx->fxID);
 					int isFuncTrue = *reinterpret_cast<int*>(pRet);
 
-					Union::StringANSI::Format(zSTRING("IS EXIT FUNC TRUE? Well: {0}"), (bool)isFuncTrue).StdPrintLine();
-
 					if (isFuncTrue)
 					{
 						closeCtx(*it);
 						it = ctxQueue.erase(it); continue;
 					}
 				}
-				//Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currIter: {5}, iterCount: {6}, exCndFuncIdx: {7}, "), currCtx->id, currCtx->type, getCtxIsRunning(currCtx->id), getCtxIsCompleted(currCtx->id), getCtxDamage(currCtx->id), currCtx->currIter, currCtx->iterCount, currCtx->exCndFuncIndex).StdPrintLine();
+				//Union::StringANSI::Format(zSTRING("ctxQueue | id: {0}, type: {1}, isRn: {2}, isCmp: {3}, dmg: {4} currIter: {5}, iterCount: {6}, exCndFuncIdx: {7}, "), currCtx->id, currCtx->type, getCtxIsRunning(currCtx->fxID, currCtx->damageSender, currCtx->damageReceiver), getCtxIsCompleted(currCtx->fxID, currCtx->damageSender, currCtx->damageReceiver), getCtxDamage(currCtx->fxID, currCtx->damageSender, currCtx->damageReceiver), currCtx->currIter, currCtx->iterCount, currCtx->exCndFuncIndex).StdPrintLine();
 
 
 				if (currCtx->type == CTX_REGULAR)
@@ -566,11 +585,9 @@ namespace GOTHIC_NAMESPACE
 					).Normalize();
 
 					Union::StringANSI::Format(zSTRING("APPLYING CTX WITH ID {0} AND ITER {1} AND DAMAGE {2}"), currCtx->id, currCtx->currIter, currCtx->damage).StdPrintLine();
-					Union::StringANSI::Format(zSTRING("Sender here is {0} AND damageReceiverAdr is {1}"), currCtx->damageSender->GetName(0), (int)currCtx->damageReceiver).StdPrintLine();
 
 					// damage applying
 					currCtx->isApplying = true;
-					Union::StringANSI::Format(zSTRING("filedsValid: {0}, dd.aryDamage {1} AND dd.fDamageTotal {2} AND damageType {3}"), dd.dwFieldsValid, dd.aryDamage[dd.enuModeDamage], dd.fDamageTotal, dd.enuModeDamage).StdPrintLine();
 					currCtx->damageReceiver->OnDamage(dd);
 					currCtx->isApplying = false;
 					// damage applying
@@ -586,8 +603,29 @@ namespace GOTHIC_NAMESPACE
 			Union::StringANSI::Format(zSTRING("ctxQueue was cleared! ctxQueue size: {0}"), ctxQueue.size()).StdPrintLine();
 		}
 
+		void filterCtxCollection()
+		{
+			for (auto it = ctxCollection.begin(); it != ctxCollection.end();)
+			{
+				ctx* currCtx = getCtx(it->first);
 
-		//getters
+				if (currCtx->isCompleted || !isCtxValid(currCtx))
+				{
+					it = ctxCollection.erase(it); continue;
+				}
+				
+				++it;
+			}
+		}
+
+		void clearCtxCollection()
+		{
+			ctxCollection.clear();
+			Union::StringANSI::Format(zSTRING("ctxCollection was cleared! ctxCollection size: {0}"), ctxCollection.size()).StdPrintLine();
+		}
+
+
+		// ctx getters
 
 		int getCtxFxProtoID(int fxID, oCNpc* damageSender, oCNpc* damageReceiver)
 		{
@@ -687,8 +725,7 @@ namespace GOTHIC_NAMESPACE
 			return currCtx ? currCtx->isCompleted : false;
 		}
 
-
-		//setters
+		// ctx setters
 
 		void setCtxDamage(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, int newDamage)
 		{
@@ -725,7 +762,7 @@ namespace GOTHIC_NAMESPACE
 		{
 			ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
 
-			if (currCtx && newLoopInterval >= 250.0f) currCtx->loopInterval = newLoopInterval;
+			if (currCtx && newLoopInterval >= 100.0f) currCtx->loopInterval = newLoopInterval;
 		}
 		void setCtxIterCount(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, int newIterCount)
 		{
@@ -738,6 +775,151 @@ namespace GOTHIC_NAMESPACE
 			ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
 
 			if (currCtx && newExCndFuncIndex >= -1) currCtx->exCndFuncIndex = newExCndFuncIndex;
+		}
+
+		// fx getters
+
+		int getFxFxProtoID(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxFxProtoID(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		oCNpc* getFxDamageSender(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxDamageSender(*outerFxID, damageSender, damageReceiver) : nullptr;
+		}
+		oCNpc* getFxDamageReceiver(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxDamageReceiver(*outerFxID, damageSender, damageReceiver) : nullptr;
+		}
+		int getFxDamage(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxDamage(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		int getFxDamageIndex(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxDamageIndex(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		int getFxCurrIter(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxCurrIter(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		float getFxLoopInterval(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxLoopInterval(*outerFxID, damageSender, damageReceiver) : -1.0f;
+		}
+		int getFxIterCount(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxIterCount(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		int getFxSpellID(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxSpellID(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		zSTRING getFxStrVisualFX(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxStrVisualFX(*outerFxID, damageSender, damageReceiver) : zSTRING("");
+		}
+		int getFxDontKill(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxDontKill(*outerFxID, damageSender, damageReceiver) : -1;
+		}
+		float getFxLastIterTime(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxLastIterTime(*outerFxID, damageSender, damageReceiver) : -1.0f;
+		}
+
+		bool getFxIsRunning(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxIsRunning(*outerFxID, damageSender, damageReceiver) : false;
+		}
+		bool getFxIsApplying(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxIsApplying(*outerFxID, damageSender, damageReceiver) : false;
+		}
+		bool getFxIsCompleted(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			return currFx && currFx->outerID == outerFxID ? getCtxIsCompleted(*outerFxID, damageSender, damageReceiver) : false;
+		}
+
+		// fx setters
+
+		void setFxDamage(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newDamage)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxDamage(*outerFxID, damageSender, damageReceiver, newDamage);
+		}
+		void setFxDamageIndex(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, oEDamageIndex newDamageIndex)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxDamageIndex(*outerFxID, damageSender, damageReceiver, newDamageIndex);
+		}
+		void setFxSpellID(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newSpellID)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxSpellID(*outerFxID, damageSender, damageReceiver, newSpellID);
+		}
+		void setFxStrVisualFX(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, zSTRING newStrVisualFX)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxStrVisualFX(*outerFxID, damageSender, damageReceiver, newStrVisualFX);
+		}
+		void setFxDontKill(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newDontKill)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxDontKill(*outerFxID, damageSender, damageReceiver, newDontKill);
+		}
+		void setFxLoopInterval(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, float newLoopInterval)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxLoopInterval(*outerFxID, damageSender, damageReceiver, newLoopInterval);
+		}
+		void setFxIterCount(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newIterCount)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxIterCount(*outerFxID, damageSender, damageReceiver, newIterCount);
+		}
+		void setFxExCndFuncIndex(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newExCndFuncIndex)
+		{
+			fx* currFx = getFx(*outerFxID);
+
+			if (currFx && currFx->outerID == outerFxID) setCtxExCndFuncIndex(*outerFxID, damageSender, damageReceiver, newExCndFuncIndex);
 		}
 
 	};
@@ -769,13 +951,13 @@ namespace GOTHIC_NAMESPACE
 		parser->GetParameter(damage);
 		outerFxProtoID = parser->PopVarAddress();
 
-		if (damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 250.0f && iterCount >= -1 && exCndFuncIndex >= -1)
+		if (outerFxProtoID != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
-			int fxProtoID = ucsManager.addFxProto(*outerFxProtoID, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
+			ucsManager.addFxProto(outerFxProtoID, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
 
-			*outerFxProtoID = fxProtoID;
+			Union::StringANSI::Format(zSTRING("created FXProto, id: {0}, outerID: {1}"), outerFxProtoID != nullptr ? *outerFxProtoID : zSTRING("nothing"), ucsManager.getFxProto(outerFxProtoID != nullptr ? *outerFxProtoID : -1)).StdPrintLine();
 		}
 
 		return 0;
@@ -802,9 +984,7 @@ namespace GOTHIC_NAMESPACE
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
-			int ctxID = ucsManager.addCtx(-1, damageSender, damageReceiver, damage, resultDamageIndex, spellID, strVisualFX, dontKill);
-
-			ucsManager.runCtx(ctxID);
+			ucsManager.addCtx(-1, damageSender, damageReceiver, damage, resultDamageIndex, spellID, strVisualFX, dontKill);
 		}
 
 		return 0;
@@ -812,23 +992,26 @@ namespace GOTHIC_NAMESPACE
 	int __cdecl UCS_StartFX()
 	{
 		int* outerFxID;
-		int fxProtoID;
+		int* outerFxProtoID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxProtoID);
+		outerFxProtoID = parser->PopVarAddress();
 		outerFxID = parser->PopVarAddress();
 
-		if (damageSender != nullptr && damageReceiver != nullptr && fxProtoID >= 0)
+		Union::StringANSI::Format(zSTRING("Start FX, outerFxID: {0}, outerFxProtoID: {1}"), outerFxID != nullptr ? *outerFxID : zSTRING("nothing"), outerFxProtoID != nullptr ? *outerFxProtoID : zSTRING("nothing")).StdPrintLine();
+
+		if (outerFxID != nullptr && outerFxProtoID != nullptr && damageSender != nullptr && damageReceiver != nullptr)
 		{
-			int fxID = ucsManager.addFx(*outerFxID);
+			ucsManager.addFx(outerFxID);
 
-			int ctxID = ucsManager.addCtx(fxID, fxProtoID, damageSender, damageReceiver);
+			Union::StringANSI::Format(zSTRING("STARTFX ON NPC PAIR {0}, {1}"), damageSender->GetName(0), damageReceiver->GetName(0)).StdPrintLine();
+			Union::StringANSI::Format(zSTRING("fxID has been returned with id {0}"), *outerFxID).StdPrintLine();
 
-			ucsManager.runCtx(ctxID);
+			ucsManager.addCtx(*outerFxID, *outerFxProtoID, damageSender, damageReceiver);
 
-			*outerFxID = fxID;
+			Union::StringANSI::Format(zSTRING("fxProtoID has been returned with id {0}"), *outerFxProtoID).StdPrintLine();
 		}
 
 		return 0;
@@ -859,17 +1042,13 @@ namespace GOTHIC_NAMESPACE
 
 		outerFxID = parser->PopVarAddress();
 
-		if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 250.0f && iterCount >= -1 && exCndFuncIndex >= -1)
+		if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
 			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
 
-			int fxID = ucsManager.addFx(*outerFxID);
+			ucsManager.addFx(outerFxID);
 			
-			int ctxID = ucsManager.addCtx(fxID, damageSender, damageReceiver, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
-
-			ucsManager.runCtx(ctxID);
-
-			*outerFxID = fxID;
+			ucsManager.addCtx(*outerFxID, damageSender, damageReceiver, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
 		}
 
 		return 0;
@@ -895,53 +1074,53 @@ namespace GOTHIC_NAMESPACE
 
 	int __cdecl UCS_IsRunning()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int isRunning = ucsManager.getCtxIsRunning(fxID, damageSender, damageReceiver);
+		int isRunning = ucsManager.getFxIsRunning(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(isRunning); return 0;
 	};
 	int __cdecl UCS_IsCompleted()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int isCompleted = ucsManager.getCtxIsCompleted(fxID, damageSender, damageReceiver);
+		int isCompleted = ucsManager.getFxIsCompleted(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(isCompleted); return 0;
 	};
 	int __cdecl UCS_GetFxProtoID()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int fxProtoID = ucsManager.getCtxFxProtoID(fxID, damageSender, damageReceiver);
+		int fxProtoID = ucsManager.getFxFxProtoID(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(fxProtoID); return 0;
 	};
 	int __cdecl UCS_GetDamage()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int damage = ucsManager.getCtxDamage(fxID, damageSender, damageReceiver);
+		int damage = ucsManager.getFxDamage(outerFxID, damageSender, damageReceiver);
 
 		Union::StringANSI::Format(zSTRING("getDamage: {0}"), damage).StdPrintLine();
 
@@ -949,107 +1128,107 @@ namespace GOTHIC_NAMESPACE
 	};
 	int __cdecl UCS_GetDamageIndex()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int damageIndex = ucsManager.getCtxDamageIndex(fxID, damageSender, damageReceiver);
+		int damageIndex = ucsManager.getFxDamageIndex(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(damageIndex); return 0;
 	};
 	int __cdecl UCS_GetCurrentIter()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int currentIter = ucsManager.getCtxCurrIter(fxID, damageSender, damageReceiver);
+		int currentIter = ucsManager.getFxCurrIter(outerFxID, damageSender, damageReceiver);
 
-		Union::StringANSI::Format(zSTRING("EXTERNAL GET CURRENT ITER {0} OUT OF CTX WITH ID: {1}!"), currentIter, ucsManager.getCtxID(fxID, damageSender, damageReceiver)).StdPrintLine();
+		Union::StringANSI::Format(zSTRING("EXTERNAL GET CURRENT ITER {0} OUT OF CTX WITH ID: {1}!"), currentIter, ucsManager.getCtxID(*outerFxID, damageSender, damageReceiver)).StdPrintLine();
 
 		parser->SetReturn(currentIter); return 0;
 	};
 	int __cdecl UCS_GetLoopInterval()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		float loopInterval = ucsManager.getCtxLoopInterval(fxID, damageSender, damageReceiver);
+		float loopInterval = ucsManager.getFxLoopInterval(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(loopInterval); return 0;
 	};
 	int __cdecl UCS_GetIterCount()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int iterCount = ucsManager.getCtxIterCount(fxID, damageSender, damageReceiver);
+		int iterCount = ucsManager.getFxIterCount(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(iterCount); return 0;
 	};
 	int __cdecl UCS_GetSpellID()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int spellID = ucsManager.getCtxSpellID(fxID, damageSender, damageReceiver);
+		int spellID = ucsManager.getFxSpellID(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(spellID); return 0;
 	};
 	int __cdecl UCS_GetVisualFX()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		zSTRING visualFX = ucsManager.getCtxStrVisualFX(fxID, damageSender, damageReceiver);
+		zSTRING visualFX = ucsManager.getFxStrVisualFX(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(visualFX); return 0;
 	};
 	int __cdecl UCS_GetDontKill()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		int dontKill = ucsManager.getCtxDontKill(fxID, damageSender, damageReceiver);
+		int dontKill = ucsManager.getFxDontKill(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(dontKill); return 0;
 	};
 	int __cdecl UCS_GetLastIterTime()
 	{
-		int fxID;
+		int* outerFxID;
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		float lastIterTime = ucsManager.getCtxLastIterTime(fxID, damageSender, damageReceiver);
+		float lastIterTime = ucsManager.getFxLastIterTime(outerFxID, damageSender, damageReceiver);
 
 		parser->SetReturn(lastIterTime); return 0;
 	};
@@ -1058,107 +1237,107 @@ namespace GOTHIC_NAMESPACE
 
 	int __cdecl UCS_SetDamage()
 	{
-		int fxID; int newDamage;
+		int* outerFxID; int newDamage;
 
 		parser->GetParameter(newDamage);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) { ucsManager.setCtxDamage(fxID, damageSender, damageReceiver, newDamage); Union::StringANSI::Format(zSTRING("EXTERNAL SET DAMAGE IN CTX WITH ID: {0} TO {1}!"), ucsManager.getCtxID(fxID, damageSender, damageReceiver), newDamage).StdPrintLine(); } return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) { ucsManager.setFxDamage(outerFxID, damageSender, damageReceiver, newDamage); Union::StringANSI::Format(zSTRING("EXTERNAL SET DAMAGE IN CTX WITH ID: {0} TO {1}!"), ucsManager.getCtxID(*outerFxID, damageSender, damageReceiver), newDamage).StdPrintLine(); } return 0;
 	};
 	int __cdecl UCS_SetDamageIndex()
 	{
-		int fxID; int newDamageIndex;
+		int* outerFxID; int newDamageIndex;
 
 		parser->GetParameter(newDamageIndex);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxDamageIndex(fxID, damageSender, damageReceiver, (oEDamageIndex)newDamageIndex); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxDamageIndex(outerFxID, damageSender, damageReceiver, (oEDamageIndex)newDamageIndex); return 0;
 	};
 	int __cdecl UCS_SetSpellID()
 	{
-		int fxID; int newSpellID;
+		int* outerFxID; int newSpellID;
 
 		parser->GetParameter(newSpellID);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxSpellID(fxID, damageSender, damageReceiver, newSpellID); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxSpellID(outerFxID, damageSender, damageReceiver, newSpellID); return 0;
 	};
 	int __cdecl UCS_SetVisualFX()
 	{
-		int fxID; zSTRING newVisualFX;
+		int* outerFxID; zSTRING newVisualFX;
 
 		parser->GetParameter(newVisualFX);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxStrVisualFX(fxID, damageSender, damageReceiver, newVisualFX); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxStrVisualFX(outerFxID, damageSender, damageReceiver, newVisualFX); return 0;
 	};
 	int __cdecl UCS_SetDontKill()
 	{
-		int fxID; int newDontKill;
+		int* outerFxID; int newDontKill;
 
 		parser->GetParameter(newDontKill);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxDontKill(fxID, damageSender, damageReceiver, newDontKill); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxDontKill(outerFxID, damageSender, damageReceiver, newDontKill); return 0;
 	};
 	int __cdecl UCS_SetLoopInterval()
 	{
-		int fxID; float newLoopInterval;
+		int* outerFxID; float newLoopInterval;
 
 		parser->GetParameter(newLoopInterval);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxLoopInterval(fxID, damageSender, damageReceiver, newLoopInterval); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxLoopInterval(outerFxID, damageSender, damageReceiver, newLoopInterval); return 0;
 	};
 	int __cdecl UCS_SetIterCount()
 	{
-		int fxID; int newIterCount;
+		int* outerFxID; int newIterCount;
 
 		parser->GetParameter(newIterCount);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxIterCount(fxID, damageSender, damageReceiver, newIterCount); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxIterCount(outerFxID, damageSender, damageReceiver, newIterCount); return 0;
 	};
 	int __cdecl UCS_SetExitCondition()
 	{
-		int fxID; int newExCndFuncIndex;
+		int* outerFxID; int newExCndFuncIndex;
 
 		parser->GetParameter(newExCndFuncIndex);
 
 		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
 		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
 
-		parser->GetParameter(fxID);
+		outerFxID = parser->PopVarAddress();
 
-		if (ucsManager.getCtxIsApplying(fxID, damageSender, damageReceiver)) ucsManager.setCtxExCndFuncIndex(fxID, damageSender, damageReceiver, newExCndFuncIndex); return 0;
+		if (ucsManager.getFxIsApplying(outerFxID, damageSender, damageReceiver)) ucsManager.setFxExCndFuncIndex(outerFxID, damageSender, damageReceiver, newExCndFuncIndex); return 0;
 	};
 
 
@@ -1194,6 +1373,6 @@ namespace GOTHIC_NAMESPACE
 		parser->DefineExternal("UCS_SetIterCount", UCS_SetIterCount, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_VOID);
 		parser->DefineExternal("UCS_SetExitCondition", UCS_SetExitCondition, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
 		
-		//parser->DefineExternal("UCS_SetExitCondition", UCS_SetExitCondition, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		// void parser->DefineExternal("UCS_SetExitCondition", UCS_SetExitCondition, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
 	}
 }

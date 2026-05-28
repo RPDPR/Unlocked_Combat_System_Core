@@ -30,13 +30,17 @@ namespace GOTHIC_NAMESPACE
 	auto Partial_zCWorld_Render = Union::CreatePartialHook(reinterpret_cast<void*>(zSwitch(0x0063DC76, 0x006C87EB)), &oCGame_MainWorld_Render);
 	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg)
 	{
+		ucsManager.updateCtxCollection();
 		ucsManager.updateCtxQueue();
+		ucsManager.filterCtxCollection();
 	}
 	void __fastcall oCGame_LoadGame(oCGame* self, void* vtable, int slot, const zSTRING& levelPath);
 	auto Hook_oCGame_LoadGame = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x0063C070, 0x006C65A0)), &oCGame_LoadGame, Union::HookType::Hook_Detours);
 	void __fastcall oCGame_LoadGame(oCGame* self, void* vtable, int slot, const zSTRING& levelPath)
 	{
 		ucsManager.clearCtxQueue();
+		ucsManager.clearCtxCollection();
+
 		Hook_oCGame_LoadGame(self, vtable, slot, levelPath);
 	}
 
@@ -45,6 +49,8 @@ namespace GOTHIC_NAMESPACE
 	void __fastcall oCGame_LoadSaveGame(oCGame* self, void* vtable, int slot, zBOOL loadGlobals)
 	{
 		ucsManager.clearCtxQueue();
+		ucsManager.clearCtxCollection();
+
 		Hook_oCGame_LoadSaveGame(self, vtable, slot, loadGlobals);
 	}
 
