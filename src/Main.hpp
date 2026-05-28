@@ -3,9 +3,10 @@
 #include <vector>
 
 #include "UCS/DT_Manager.hpp"
-#include "UCS/ApplyDamage.hpp"
+#include "UCS/UCS_Manager.hpp"
 #include "UCS/Pipeline.hpp"
-#include "UCS/Hlp_Packet.hpp"
+#include "UCS/Externals/UCS_Packet.hpp"
+#include "UCS/Externals/Hlp_Packet.hpp"
 
 namespace GOTHIC_NAMESPACE
 {
@@ -14,8 +15,6 @@ namespace GOTHIC_NAMESPACE
 		int funcIndex = parser->GetIndex(zSTRING("UCS_Init")); if (funcIndex < 0) return;
 
 		parser->CallFunc(funcIndex);
-
-		return;
 	}
 
 	void __fastcall oCGame_Init(oCGame* self, void* vtable);
@@ -59,7 +58,7 @@ namespace GOTHIC_NAMESPACE
 
 	void Game_DefineExternals()
 	{
-		Game_DefineExternals_ApplyDamage();
+		Game_DefineExternals_UCS_Packet();
 		Game_DefineExternals_Pipeline();
 		Game_DefineExternals_DT_Manager();
 		Game_DefineExternals_HlpPacket();
