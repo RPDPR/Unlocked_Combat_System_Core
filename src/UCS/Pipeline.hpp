@@ -95,14 +95,29 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
+	void Call_PullPre(int damageType, int initialPureDamage, int spellID)
+	{
+		int funcIndex = parser->GetIndex(zSTRING("PullPre")); if (funcIndex < 0) return;
+
+		parser->CallFunc(funcIndex, damageType, initialProtection, spellID);
+	}
+
+	void Call_PullPre(int damageType, int initialProtection, int spellID)
+	{
+		int funcIndex = parser->GetIndex(zSTRING("PullPre")); if (funcIndex < 0) return;
+
+		parser->CallFunc(funcIndex, damageType, initialProtection, spellID);
+	}
+
+
 	// UCS Pipeline /////
 	static oCNpc::oSDamageDescriptor* gDamageDescriptor = nullptr;
 
 	oCNpc* damageSender = nullptr;
 	oCNpc* damageReceiver = nullptr;
 
-	int damageIndex;
-	int customDamageIndex;
+	int damageIndex = -1;
+	int customDamageIndex = -1;
 
 	int isCrit = -1;
 	int minimalDamage = -1;
@@ -127,6 +142,9 @@ namespace GOTHIC_NAMESPACE
 			? -1
 			: damageIndexArr[0];
 
+		customDamageIndex = ucsManager.
+
+
 		pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
 
 		if (pureDamage >= 0)
@@ -135,7 +153,13 @@ namespace GOTHIC_NAMESPACE
 			dd.fDamageTotal = pureDamage;
 		}
 
+
+		Call_PullPre(damageIndex);
+
 		Hook_oCNpc_OnDamage_Hit(self, vtable, dd);
+
+		Call_PullPost(damageIndex)
+
 
 		// reseting the values
 		if (customDamageIndex >= 0)
@@ -313,7 +337,7 @@ namespace GOTHIC_NAMESPACE
 				reg.eax = 0;
 			};
 
-			customDamageIndex = Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customDamageIndex = customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
 
 			if (customDamageIndex >= 0)
 			{

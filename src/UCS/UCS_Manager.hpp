@@ -84,6 +84,9 @@ namespace GOTHIC_NAMESPACE
 				int iterCount;
 			};
 
+			std::vector<int> customDIStack;
+
+
 			struct fxProto : FxData
 			{
 				int id;
@@ -1053,6 +1056,12 @@ namespace GOTHIC_NAMESPACE
 				fx* currFx = getFx(*outerFxID);
 
 				if (isFxValid(currFx) && currFx->outerID == outerFxID) setCtxExCndFuncIndex(*outerFxID, damageSender, damageReceiver, newExCndFuncIndex);
+			}
+
+
+			int getCurrentCustomDI()
+			{
+
 			}
 	};
 
