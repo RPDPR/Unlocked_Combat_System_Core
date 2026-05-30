@@ -27,9 +27,7 @@ namespace GOTHIC_NAMESPACE
 
 		if (outerFxProtoID != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
-			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
-
-			ucsManager.createFxProto(outerFxProtoID, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
+			ucsManager.createFxProto(outerFxProtoID, damage, damageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
 		}
 
 		return 0;
@@ -54,9 +52,7 @@ namespace GOTHIC_NAMESPACE
 
 		if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0)
 		{
-			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
-
-			ucsManager.startInstantFx(damageSender, damageReceiver, damage, resultDamageIndex, spellID, strVisualFX, dontKill);
+			ucsManager.startInstantFx(damageSender, damageReceiver, damage, damageIndex, spellID, strVisualFX, dontKill);
 		}
 
 		return 0;
@@ -105,11 +101,9 @@ namespace GOTHIC_NAMESPACE
 
 		outerFxID = parser->PopVarAddress();
 
-		if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && exCndFuncIndex >= -1)
+		if (outerFxID != nullptr && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && exCndFuncIndex >= -1)
 		{
-			oEDamageIndex resultDamageIndex = damageIndex < oEDamageIndex_MAX ? (oEDamageIndex)damageIndex : (oEDamageIndex)0;
-
-			ucsManager.startFxEx(outerFxID, damageSender, damageReceiver, damage, resultDamageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
+			ucsManager.startFxEx(outerFxID, damageSender, damageReceiver, damage, damageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, exCndFuncIndex);
 		}
 
 		return 0;
@@ -315,7 +309,7 @@ namespace GOTHIC_NAMESPACE
 
 		outerFxID = parser->PopVarAddress();
 
-		ucsManager.setFxDamageIndex(outerFxID, damageSender, damageReceiver, (oEDamageIndex)newDamageIndex); return 0;
+		ucsManager.setFxDamageIndex(outerFxID, damageSender, damageReceiver, newDamageIndex); return 0;
 	};
 	int __cdecl UCS_SetSpellID()
 	{

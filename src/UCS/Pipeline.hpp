@@ -8,15 +8,15 @@ namespace GOTHIC_NAMESPACE
 		void* pRet = parser->CallFunc(funcIndex, itemInstance_ID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
-		if (dataValue < 8) return -1;
+		if (dataValue < oEDamageIndex_MAX) return -1;
 
 		return dataValue;
 	}
-	int Call_PullCustomDamage(int damageType, int initialPureDamage, int isCrit, int spellID)
+	int Call_PullCustomDamage(int damageIndex, int initialPureDamage, int isCrit, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageType, initialPureDamage, isCrit, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialPureDamage, isCrit, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -24,12 +24,12 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	float Call_PullMultiplier(int damageType, int isCrit)
+	float Call_PullMultiplier(int damageIndex, int isCrit)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullMultiplier")); if (funcIndex < 0) return -1.0f;
 
 		zCPar_Symbol* sym = parser->GetSymbol(funcIndex); if (sym == nullptr) return -1.0f;
-		void* pRet = parser->CallFunc(funcIndex, damageType, isCrit);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, isCrit);
 
 		float dataValue = -1.0f;
 
@@ -47,11 +47,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullMinimalDamage(int damageType, int initialMinimalDamage, int spellID)
+	int Call_PullMinimalDamage(int damageIndex, int initialMinimalDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullMinimalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageType, initialMinimalDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialMinimalDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -59,11 +59,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullPureDamage(int damageType, int initialPureDamage, int spellID)
+	int Call_PullPureDamage(int damageIndex, int initialPureDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullPureDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageType, initialPureDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialPureDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -71,11 +71,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullTotalDamage(int damageType, int initialTotalDamage, int spellID)
+	int Call_PullTotalDamage(int damageIndex, int initialTotalDamage, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullTotalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageType, initialTotalDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialTotalDamage, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -83,11 +83,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullProtection(int damageType, int initialProtection, int spellID)
+	int Call_PullProtection(int damageIndex, int initialProtection, int spellID)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullProtection")); if (funcIndex < 0) return -2;
 
-		void* pRet = parser->CallFunc(funcIndex, damageType, initialProtection, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialProtection, spellID);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < -1) return -2;
@@ -95,18 +95,18 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	void Call_PullPre(int damageType, int initialPureDamage, int spellID)
+	void Call_PullPreDamage(int damageIndex, int spellID)
 	{
-		int funcIndex = parser->GetIndex(zSTRING("PullPre")); if (funcIndex < 0) return;
+		int funcIndex = parser->GetIndex(zSTRING("PullPreDamage")); if (funcIndex < 0) return;
 
-		parser->CallFunc(funcIndex, damageType, initialProtection, spellID);
+		parser->CallFunc(funcIndex, damageIndex, spellID);
 	}
 
-	void Call_PullPre(int damageType, int initialProtection, int spellID)
+	void Call_PullPostDamage(int damageIndex, int spellID)
 	{
-		int funcIndex = parser->GetIndex(zSTRING("PullPre")); if (funcIndex < 0) return;
+		int funcIndex = parser->GetIndex(zSTRING("PullPostDamage")); if (funcIndex < 0) return;
 
-		parser->CallFunc(funcIndex, damageType, initialProtection, spellID);
+		parser->CallFunc(funcIndex, damageIndex, spellID);
 	}
 
 
@@ -142,10 +142,13 @@ namespace GOTHIC_NAMESPACE
 			? -1
 			: damageIndexArr[0];
 
-		customDamageIndex = ucsManager.
+		customDamageIndex = ucsManager.getCurrentCDI();
 
 
-		pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
+		if (damageIndex >= 0)
+		{
+			pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
+		}
 
 		if (pureDamage >= 0)
 		{
@@ -154,11 +157,11 @@ namespace GOTHIC_NAMESPACE
 		}
 
 
-		Call_PullPre(damageIndex);
-
+		// damage applying
+		Call_PullPreDamage(customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : damageIndex, dd.nSpellID);
 		Hook_oCNpc_OnDamage_Hit(self, vtable, dd);
-
-		Call_PullPost(damageIndex)
+		Call_PullPostDamage(customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : damageIndex, dd.nSpellID);
+		// damage applying
 
 
 		// reseting the values
@@ -360,9 +363,9 @@ namespace GOTHIC_NAMESPACE
 				reg.edi = 0;
 			};
 
-			customDamageIndex = customDamageIndex >= 8 ? customDamageIndex : Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customDamageIndex = customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
 
-			if (customDamageIndex >= 8)
+			if (customDamageIndex >= oEDamageIndex_MAX)
 			{
 				int customDamage = Call_PullCustomDamage(customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
 

@@ -75,7 +75,7 @@ namespace GOTHIC_NAMESPACE
 			struct FxData
 			{
 				int damage;
-				oEDamageIndex damageIndex;
+				int damageIndex;
 				int spellID;
 				zSTRING strVisualFX;
 				int dontKill;
@@ -84,7 +84,7 @@ namespace GOTHIC_NAMESPACE
 				int iterCount;
 			};
 
-			std::vector<int> customDIStack;
+			int currentCDI = -1;
 
 
 			struct fxProto : FxData
@@ -116,8 +116,8 @@ namespace GOTHIC_NAMESPACE
 				CtxType type = CTX_UNKNOWN;
 				int fxID = -1;
 
-				oCNpc* damageSender;
-				oCNpc* damageReceiver;
+				oCNpc* damageSender = nullptr;
+				oCNpc* damageReceiver = nullptr;
 
 				float lastIterTime = -1.0f;
 				int currIter = -1;
@@ -157,7 +157,6 @@ namespace GOTHIC_NAMESPACE
 					currFxProto->id < 0 ||
 					currFxProto->damage < 0 ||
 					currFxProto->damageIndex < 0 ||
-					currFxProto->damageIndex >= oEDamageIndex_MAX ||
 					currFxProto->spellID < -1 ||
 					currFxProto->dontKill < 0 ||
 					currFxProto->loopInterval < 100.0f ||
@@ -171,7 +170,7 @@ namespace GOTHIC_NAMESPACE
 			(
 				int* outerFxProtoID,
 				int damage,
-				oEDamageIndex damageIndex,
+				int damageIndex,
 				int spellID,
 				zSTRING strVisualFX,
 				int dontKill,
@@ -224,7 +223,6 @@ namespace GOTHIC_NAMESPACE
 					currFx->id < 0 ||
 					currFx->damage < 0 ||
 					currFx->damageIndex < 0 ||
-					currFx->damageIndex >= oEDamageIndex_MAX ||
 					currFx->spellID < -1 ||
 					currFx->dontKill < 0 ||
 					currFx->loopInterval < 100.0f ||
@@ -238,7 +236,7 @@ namespace GOTHIC_NAMESPACE
 			(
 				int* outerFxID,
 				int damage,
-				oEDamageIndex damageIndex,
+				int damageIndex,
 				int spellID,
 				zSTRING strVisualFX,
 				int dontKill,
@@ -307,7 +305,6 @@ namespace GOTHIC_NAMESPACE
 					currCtx->damageReceiver == nullptr ||
 					currCtx->damage < 0 ||
 					currCtx->damageIndex < 0 ||
-					currCtx->damageIndex >= oEDamageIndex_MAX ||
 					currCtx->spellID < -1 ||
 					currCtx->dontKill < 0 ||
 					(currCtx->isRunning || currCtx->isApplying) && currCtx->isCompleted)
@@ -330,7 +327,7 @@ namespace GOTHIC_NAMESPACE
 				oCNpc* damageSender = nullptr,
 				oCNpc* damageReceiver = nullptr,
 				int damage = -1,
-				oEDamageIndex damageIndex = oEDamageIndex_Barrier,
+				int damageIndex = -1,
 				int spellID = -1,
 				zSTRING strVisualFX = zSTRING(""),
 				int dontKill = -1,
@@ -344,7 +341,7 @@ namespace GOTHIC_NAMESPACE
 
 				if (isCtxValid(currCtx) && currCtx->isRunning) return;
 
-				if (!isFxValid(currFx)) return;
+				if (fxID >= 0 && !isFxValid(currFx)) return;
 
 
 				ctx newCtx{};
@@ -484,7 +481,7 @@ namespace GOTHIC_NAMESPACE
 
 					if (!isCtxValid(currCtx) || !currCtx->isRunning || currCtx->isCompleted)
 					{
-						closeCtx(*it);
+						currCtx->shouldClose = true;
 						it = ctxQueue.erase(it); continue;
 					}
 
@@ -499,7 +496,7 @@ namespace GOTHIC_NAMESPACE
 
 						if (isFuncTrue)
 						{
-							closeCtx(*it);
+							currCtx->shouldClose = true;
 							it = ctxQueue.erase(it); continue;
 						}
 					}
@@ -514,18 +511,31 @@ namespace GOTHIC_NAMESPACE
 						dd.dwFieldsValid =
 							oCNpc::oEDamageDescFlag_Damage |
 							oCNpc::oEDamageDescFlag_DamageType |
-							oCNpc::oEDamageDescFlag_Attacker |
 							oCNpc::oEDamageDescFlag_Npc |
 							oCNpc::oEDamageDescFlag_VisualFX |
 							oCNpc::oEDamageDescFlag_SpellID |
 							oCNpc::oEDamageDescFlag_HitLocation |
-							oCNpc::oEDamageDescFlag_FlyDirection;
+							(
+								currCtx->damageSender ?
+								(
+									oCNpc::oEDamageDescFlag_Attacker |
+									oCNpc::oEDamageDescFlag_FlyDirection
+								) : 0
+							);
 
 						dd.pVobAttacker = currCtx->damageSender;
 						dd.pNpcAttacker = currCtx->damageSender;
 						dd.pVobHit = currCtx->damageReceiver;
-						dd.enuModeDamage = GetDamageType(currCtx->damageIndex);
-						dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
+
+						oEDamageIndex resultDamageIndex =
+						(
+							currCtx->damageIndex < oEDamageIndex_MAX
+							? (oEDamageIndex)currCtx->damageIndex
+							: oEDamageIndex_Blunt
+						);
+
+						dd.enuModeDamage = GetDamageType(resultDamageIndex);
+						dd.aryDamage[resultDamageIndex] = currCtx->damage;
 						dd.fDamageTotal = currCtx->damage;
 						dd.nSpellID = currCtx->spellID;
 						dd.strVisualFX = currCtx->strVisualFX;
@@ -536,12 +546,19 @@ namespace GOTHIC_NAMESPACE
 						#endif
 
 						dd.fDamageMultiplier = 1.0f;
+
 						dd.vecLocationHit = currCtx->damageReceiver->GetPositionWorld();
-						dd.vecDirectionFly =
-						(
-							currCtx->damageReceiver->GetPositionWorld() -
-							currCtx->damageSender->GetPositionWorld()
-						).Normalize();
+
+						if (currCtx->damageSender)
+						{
+							dd.vecDirectionFly =
+							(
+								currCtx->damageReceiver->GetPositionWorld() -
+								currCtx->damageSender->GetPositionWorld()
+							).Normalize();
+						}
+
+						currentCDI = currCtx->damageIndex >= oEDamageIndex_MAX ? currCtx->damageIndex : -1;
 
 						// damage applying
 						currCtx->isApplying = true;
@@ -549,7 +566,9 @@ namespace GOTHIC_NAMESPACE
 						currCtx->isApplying = false;
 						// damage applying
 
-						closeCtx(*it);
+						currentCDI = -1;
+
+						currCtx->shouldClose = true;
 						it = ctxQueue.erase(it); continue;
 					}
 					if (currCtx->type == CTX_LOOP)
@@ -585,7 +604,7 @@ namespace GOTHIC_NAMESPACE
 
 						if (isItersExceeded || isReceiverUnconscious || isReceiverDead)
 						{
-							closeCtx(*it);
+							currCtx->shouldClose = true;
 							it = ctxQueue.erase(it); continue;
 						}
 
@@ -610,18 +629,31 @@ namespace GOTHIC_NAMESPACE
 						dd.dwFieldsValid =
 							oCNpc::oEDamageDescFlag_Damage |
 							oCNpc::oEDamageDescFlag_DamageType |
-							oCNpc::oEDamageDescFlag_Attacker |
 							oCNpc::oEDamageDescFlag_Npc |
 							oCNpc::oEDamageDescFlag_VisualFX |
 							oCNpc::oEDamageDescFlag_SpellID |
 							oCNpc::oEDamageDescFlag_HitLocation |
-							oCNpc::oEDamageDescFlag_FlyDirection;
+							(
+								currCtx->damageSender ?
+								(
+									oCNpc::oEDamageDescFlag_Attacker |
+									oCNpc::oEDamageDescFlag_FlyDirection
+								) : 0
+							);
 
 						dd.pVobAttacker = currCtx->damageSender;
 						dd.pNpcAttacker = currCtx->damageSender;
 						dd.pVobHit = currCtx->damageReceiver;
-						dd.enuModeDamage = GetDamageType(currCtx->damageIndex);
-						dd.aryDamage[currCtx->damageIndex] = currCtx->damage;
+
+						oEDamageIndex resultDamageIndex =
+						(
+							currCtx->damageIndex < oEDamageIndex_MAX
+							? (oEDamageIndex)currCtx->damageIndex
+							: oEDamageIndex_Blunt
+						);
+
+						dd.enuModeDamage = GetDamageType(resultDamageIndex);
+						dd.aryDamage[resultDamageIndex] = currCtx->damage;
 						dd.fDamageTotal = currCtx->damage;
 						dd.nSpellID = currCtx->spellID;
 						dd.strVisualFX = currCtx->strVisualFX;
@@ -632,18 +664,27 @@ namespace GOTHIC_NAMESPACE
 						#endif
 
 						dd.fDamageMultiplier = 1.0f;
+
 						dd.vecLocationHit = currCtx->damageReceiver->GetPositionWorld();
-						dd.vecDirectionFly =
-						(
-							currCtx->damageReceiver->GetPositionWorld() -
-							currCtx->damageSender->GetPositionWorld()
-						).Normalize();
+
+						if (currCtx->damageSender)
+						{
+							dd.vecDirectionFly =
+							(
+								currCtx->damageReceiver->GetPositionWorld() -
+								currCtx->damageSender->GetPositionWorld()
+							).Normalize();
+						}
+
+						currentCDI = currCtx->damageIndex >= oEDamageIndex_MAX ? currCtx->damageIndex : -1;
 
 						// damage applying
 						currCtx->isApplying = true;
 						currCtx->damageReceiver->OnDamage(dd);
 						currCtx->isApplying = false;
 						// damage applying
+
+						currentCDI = -1;
 					}
 
 					++it;
@@ -758,12 +799,11 @@ namespace GOTHIC_NAMESPACE
 
 				if (isCtxValid(currCtx) && currCtx->isApplying && newDamage >= 0) currCtx->damage = newDamage;
 			}
-			void setCtxDamageIndex(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, oEDamageIndex newDamageIndex)
+			void setCtxDamageIndex(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, int newDamageIndex)
 			{
 				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
 
-				if (isCtxValid(currCtx) && currCtx->isApplying && newDamageIndex >= 0 && newDamageIndex < oEDamageIndex_MAX)
-					currCtx->damageIndex = newDamageIndex;
+				if (isCtxValid(currCtx) && currCtx->isApplying && newDamageIndex >= 0) currCtx->damageIndex = newDamageIndex;
 			}
 			void setCtxSpellID(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, int newSpellID)
 			{
@@ -809,7 +849,7 @@ namespace GOTHIC_NAMESPACE
 			(
 				int* outerFxProtoID,
 				int damage,
-				oEDamageIndex damageIndex,
+				int damageIndex,
 				int spellID,
 				zSTRING strVisualFX,
 				int dontKill,
@@ -854,7 +894,7 @@ namespace GOTHIC_NAMESPACE
 				oCNpc* damageSender,
 				oCNpc* damageReceiver,
 				int damage,
-				oEDamageIndex damageIndex,
+				int damageIndex,
 				int spellID,
 				zSTRING strVisualFX,
 				int dontKill,
@@ -878,7 +918,7 @@ namespace GOTHIC_NAMESPACE
 				oCNpc* damageSender,
 				oCNpc* damageReceiver,
 				int damage,
-				oEDamageIndex damageIndex,
+				int damageIndex,
 				int spellID,
 				zSTRING strVisualFX,
 				int dontKill
@@ -920,6 +960,11 @@ namespace GOTHIC_NAMESPACE
 
 
 			// fx getters
+
+			int getCurrentCDI()
+			{
+				return currentCDI >= oEDamageIndex_MAX ? currentCDI : -1;
+			}
 
 			oCNpc* getFxDamageSender(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
 			{
@@ -1015,7 +1060,7 @@ namespace GOTHIC_NAMESPACE
 
 				if (isFxValid(currFx) && currFx->outerID == outerFxID) setCtxDamage(*outerFxID, damageSender, damageReceiver, newDamage);
 			}
-			void setFxDamageIndex(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, oEDamageIndex newDamageIndex)
+			void setFxDamageIndex(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newDamageIndex)
 			{
 				fx* currFx = getFx(*outerFxID);
 
@@ -1056,12 +1101,6 @@ namespace GOTHIC_NAMESPACE
 				fx* currFx = getFx(*outerFxID);
 
 				if (isFxValid(currFx) && currFx->outerID == outerFxID) setCtxExCndFuncIndex(*outerFxID, damageSender, damageReceiver, newExCndFuncIndex);
-			}
-
-
-			int getCurrentCustomDI()
-			{
-
 			}
 	};
 
