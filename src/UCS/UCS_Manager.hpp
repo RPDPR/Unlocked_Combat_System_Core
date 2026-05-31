@@ -183,6 +183,15 @@ namespace GOTHIC_NAMESPACE
 
 				if (isFxProtoValid(currFxProto) && currFxProto->outerID == outerFxProtoID)
 				{
+					currFxProto->damage = damage;
+					currFxProto->damageIndex = damageIndex;
+					currFxProto->spellID = spellID;
+					currFxProto->strVisualFX = strVisualFX;
+					currFxProto->dontKill = dontKill;
+					currFxProto->loopInterval = loopInterval;
+					currFxProto->iterCount = iterCount;
+					currFxProto->exCndFuncIndex = exCndFuncIndex;
+
 					*currFxProto->outerID = currFxProto->id; return;
 				}
 
@@ -249,6 +258,15 @@ namespace GOTHIC_NAMESPACE
 
 				if (isFxValid(currFx) && currFx->outerID == outerFxID)
 				{
+					currFx->damage = damage;
+					currFx->damageIndex = damageIndex;
+					currFx->spellID = spellID;
+					currFx->strVisualFX = strVisualFX;
+					currFx->dontKill = dontKill;
+					currFx->loopInterval = loopInterval;
+					currFx->iterCount = iterCount;
+					currFx->exCndFuncIndex = exCndFuncIndex;
+
 					*currFx->outerID = currFx->id; return;
 				}
 
