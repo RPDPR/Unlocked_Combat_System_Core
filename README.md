@@ -77,15 +77,13 @@ You can delete the rest of the files if you are sure that you will not need to m
 1. Copy the core dynamic library `UCS_gXX.dll` into your game's `\System\Autorun\` folder (preferably packed within a `.mod` or `.vdf` volume for a final release).
 2. In your project's directory (`_Work\Data\Scripts\Content\`), create a new folder named `UCS`.
 3. Extract `UCS_Consts_gXX.d` and `UCS_OnDamage_gXX.d` from the downloaded archive into this newly created `UCS` folder.
-4. Open your main `Gothic.src` file and register the scripts. **⚠️ Strict compilation order is required:**
-   * Insert the constants path `UCS\UCS_Consts_gXX.d` strictly after  `_Intern\Constants.d` and `_Intern\Classes.d` (and `_Intern\magic_intern.d` if g1)
-   * Insert the pipeline path `UCS\UCS_OnDamage_gXX.d` right after `UCS\UCS_Consts_gXX.d`.
+4. Open your main `Gothic.src` file and register the scripts:
+   Insert the constants path `UCS\UCS_Consts_gXX.d` and pipeline path `UCS\UCS_OnDamage_gXX.d`
+   right before the `STORY\Startup.d` in exact order. **Constants path must be placed before the pipeline path!**
 
-> <img width="307" height="267" alt="image" src="https://github.com/user-attachments/assets/0fbb74fb-f00e-4aba-8139-cf56696e57b2" />
-> <img width="284" height="251" alt="image" src="https://github.com/user-attachments/assets/b0113b7d-0251-49ae-97fd-bda680bce8ff" />
+> <img width="217" height="77" alt="image" src="https://github.com/user-attachments/assets/34bcae76-67bd-48da-aaa7-09484be3cf7e" />
 
-
-5. Save file changes and go check it out to the game that all is made correctly!
+6. Save file changes and go check it out to the game that all is made correctly!
 
 ##### Via Gothic Sourcer:
 1. Copy `UCS_gXX.dll` into the `\System\Autorun` folder (preferably within a `.mod` or `.vdf` volume).
@@ -93,7 +91,8 @@ You can delete the rest of the files if you are sure that you will not need to m
 3. Add `UCS_Consts_gXX.d` and `UCS_OnDamage_gXX.d` files to your project. It's best to create a `\UCS` folder in the root of your project for this purpose:
    * Right-click your folder and select **"New script file"**.
    * Select the script position in the `.src` file. **Script Order Matters,** incorrect positioning may cause compilation errors.
-   * It's required to choose a position **after** Constants.d and Classes.d files. `UCS_Consts_gXX.d` should go earlier than `UCS_OnDamage_gXX.d`.
+   * It's required to choose a position **after** Constants.d and Classes.d files. `UCS_Consts_gXX.d` must go earlier than `UCS_OnDamage_gXX.d`.
+     The best place for both paths is right before the `STORY\Startup.d`.
 5. **Register External Functions:**
    * In GothicSourcer, go to **Help** -> **Show external functions**.
    * Open the provided `Externals.d` from the archive, copy its contents, and append them to the compiler definitions.
