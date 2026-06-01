@@ -14,7 +14,7 @@ The subsystem is designed specifically for `Daedalus scripters`, allowing you to
 ### ⚔️ Damage Pipeline (Legacy v1.0 Core)
 * Full access to all internal engine damage calculation stages.
 * Custom interception breakpoints inside core combat routines.
-* Minimal impact on original game performance and vanilla logic.
+* Minimally invasive impact on original game code structure.
 
 ### 🧪 Advanced FX Engine (New in v2.0)
 * Dedicated built-in engine to safely process periodic (Loop) and instant effects.
