@@ -125,6 +125,7 @@ namespace GOTHIC_NAMESPACE
 	int protection = -2;
 	int pureDamage = -1;
 	int totalDamage = -1;
+	int customPureDamage = -1;
 
 	void __fastcall oCNpc_OnDamage_Hit(oCNpc* self, void* vtable, oCNpc::oSDamageDescriptor& dd);
 	auto Hook_oCNpc_OnDamage_Hit = Union::CreateHook(reinterpret_cast<void*>(zSwitch(0x00731410, 0x00666610)), &oCNpc_OnDamage_Hit, Union::HookType::Hook_Detours);
@@ -143,6 +144,7 @@ namespace GOTHIC_NAMESPACE
 			: damageIndexArr[0];
 
 		customDamageIndex = ucsManager.getCurrentCDI();
+		customPureDamage = ucsManager.getCurrentCD();
 
 
 		if (damageIndex >= 0)
@@ -341,10 +343,11 @@ namespace GOTHIC_NAMESPACE
 			};
 
 			customDamageIndex = customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customPureDamage = customPureDamage >= 0 ? customPureDamage : gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0;
 
 			if (customDamageIndex >= 0)
 			{
-				int customDamage = Call_PullCustomDamage(customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
+				int customDamage = Call_PullCustomDamage(customDamageIndex, customPureDamage, isCrit, gDamageDescriptor->nSpellID);
 
 				if (customDamage >= 0)
 				{
@@ -364,10 +367,11 @@ namespace GOTHIC_NAMESPACE
 			};
 
 			customDamageIndex = customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : Call_PullCustomDamageType(gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetInstance() : -1);
+			customPureDamage = customPureDamage >= 0 ? customPureDamage : gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0;
 
 			if (customDamageIndex >= oEDamageIndex_MAX)
 			{
-				int customDamage = Call_PullCustomDamage(customDamageIndex, gDamageDescriptor->pItemWeapon != nullptr ? gDamageDescriptor->pItemWeapon->GetFullDamage() : 0, isCrit, gDamageDescriptor->nSpellID);
+				int customDamage = Call_PullCustomDamage(customDamageIndex, customPureDamage, isCrit, gDamageDescriptor->nSpellID);
 
 				if (customDamage >= 0)
 				{
