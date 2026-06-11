@@ -77,6 +77,7 @@ namespace GOTHIC_NAMESPACE
 				int damage;
 				int damageIndex;
 				int spellID;
+				int spellLevel;
 				zSTRING strVisualFX;
 				int dontKill;
 				float loopInterval;
@@ -163,6 +164,7 @@ namespace GOTHIC_NAMESPACE
 					currFxProto->damage < 0 ||
 					currFxProto->damageIndex < 0 ||
 					currFxProto->spellID < -1 ||
+					currFxProto->spellLevel < -1 ||
 					currFxProto->dontKill < 0 ||
 					currFxProto->loopInterval < 100.0f ||
 					currFxProto->iterCount < 0 && currFxProto->exCndFuncIndex < 0 ||
@@ -178,6 +180,7 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill,
 				float loopInterval,
@@ -193,6 +196,7 @@ namespace GOTHIC_NAMESPACE
 					currFxProto->damage = damage;
 					currFxProto->damageIndex = damageIndex;
 					currFxProto->spellID = spellID;
+					currFxProto->spellLevel = spellLevel;
 					currFxProto->strVisualFX = strVisualFX;
 					currFxProto->dontKill = dontKill;
 					currFxProto->loopInterval = loopInterval;
@@ -213,6 +217,7 @@ namespace GOTHIC_NAMESPACE
 				newFxProto.damage = damage;
 				newFxProto.damageIndex = damageIndex;
 				newFxProto.spellID = spellID;
+				newFxProto.spellLevel = spellLevel;
 				newFxProto.strVisualFX = strVisualFX;
 				newFxProto.dontKill = dontKill;
 				newFxProto.loopInterval = loopInterval;
@@ -242,6 +247,7 @@ namespace GOTHIC_NAMESPACE
 					currFx->damage < 0 ||
 					currFx->damageIndex < 0 ||
 					currFx->spellID < -1 ||
+					currFx->spellLevel < -1 ||
 					currFx->dontKill < 0 ||
 					currFx->loopInterval < 100.0f ||
 					currFx->iterCount < 0 && currFx->exCndFuncIndex < 0 ||
@@ -257,6 +263,7 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill,
 				float loopInterval,
@@ -272,6 +279,7 @@ namespace GOTHIC_NAMESPACE
 					currFx->damage = damage;
 					currFx->damageIndex = damageIndex;
 					currFx->spellID = spellID;
+					currFx->spellLevel = spellLevel;
 					currFx->strVisualFX = strVisualFX;
 					currFx->dontKill = dontKill;
 					currFx->loopInterval = loopInterval;
@@ -292,6 +300,7 @@ namespace GOTHIC_NAMESPACE
 				newFx.damage = damage;
 				newFx.damageIndex = damageIndex;
 				newFx.spellID = spellID;
+				newFx.spellLevel = spellLevel;
 				newFx.strVisualFX = strVisualFX;
 				newFx.dontKill = dontKill;
 				newFx.loopInterval = loopInterval;
@@ -338,6 +347,7 @@ namespace GOTHIC_NAMESPACE
 					currCtx->damage < 0 ||
 					currCtx->damageIndex < 0 ||
 					currCtx->spellID < -1 ||
+					currCtx->spellLevel < -1 ||
 					currCtx->dontKill < 0 ||
 					currCtx->startedAt < 0.0f ||
 					currCtx->refreshCount < 0 ||
@@ -364,6 +374,7 @@ namespace GOTHIC_NAMESPACE
 				int damage = -1,
 				int damageIndex = -1,
 				int spellID = -1,
+				int spellLevel = -1,
 				zSTRING strVisualFX = zSTRING(""),
 				int dontKill = -1,
 				float loopInterval = -1.0f,
@@ -375,7 +386,7 @@ namespace GOTHIC_NAMESPACE
 				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
 				fx* currFx = getFx(fxID);
 
-				if (isCtxValid(currCtx) && currCtx->isRunning) return;
+				if (isCtxValid(currCtx)) return;
 
 				if (fxID >= 0 && !isFxValid(currFx)) return;
 
@@ -400,6 +411,7 @@ namespace GOTHIC_NAMESPACE
 				newCtx.damage = currFx ? currFx->damage : damage;
 				newCtx.damageIndex = currFx ? currFx->damageIndex : damageIndex;
 				newCtx.spellID = currFx ? currFx->spellID : spellID;
+				newCtx.spellLevel = currFx ? currFx->spellLevel : spellLevel;
 				newCtx.strVisualFX = currFx ? currFx->strVisualFX : strVisualFX;
 				newCtx.dontKill = currFx ? currFx->dontKill : dontKill;
 				newCtx.loopInterval = currFx ? currFx->loopInterval : loopInterval;
@@ -458,6 +470,7 @@ namespace GOTHIC_NAMESPACE
 				currCtx->damage = currFx->damage;
 				currCtx->damageIndex = currFx->damageIndex;
 				currCtx->spellID = currFx->spellID;
+				currCtx->spellLevel = currFx->spellLevel;
 				currCtx->strVisualFX = currFx->strVisualFX;
 				currCtx->dontKill = currFx->dontKill;
 				currCtx->loopInterval = currFx->loopInterval;
@@ -559,6 +572,7 @@ namespace GOTHIC_NAMESPACE
 							oCNpc::oEDamageDescFlag_Npc |
 							oCNpc::oEDamageDescFlag_VisualFX |
 							oCNpc::oEDamageDescFlag_SpellID |
+							oCNpc::oEDamageDescFlag_SpellLevel |
 							oCNpc::oEDamageDescFlag_HitLocation |
 							(
 								currCtx->damageSender ?
@@ -583,6 +597,7 @@ namespace GOTHIC_NAMESPACE
 						dd.aryDamage[resultDamageIndex] = currCtx->damage;
 						dd.fDamageTotal = currCtx->damage;
 						dd.nSpellID = currCtx->spellID;
+						dd.nSpellLevel = currCtx->spellLevel;
 						dd.strVisualFX = currCtx->strVisualFX;
 
 						#if ENGINE == Engine_G2A
@@ -699,6 +714,7 @@ namespace GOTHIC_NAMESPACE
 							oCNpc::oEDamageDescFlag_Npc |
 							oCNpc::oEDamageDescFlag_VisualFX |
 							oCNpc::oEDamageDescFlag_SpellID |
+							oCNpc::oEDamageDescFlag_SpellLevel |
 							oCNpc::oEDamageDescFlag_HitLocation |
 							(
 								currCtx->damageSender ?
@@ -723,6 +739,7 @@ namespace GOTHIC_NAMESPACE
 						dd.aryDamage[resultDamageIndex] = currCtx->damage;
 						dd.fDamageTotal = currCtx->damage;
 						dd.nSpellID = currCtx->spellID;
+						dd.nSpellLevel = currCtx->spellLevel;
 						dd.strVisualFX = currCtx->strVisualFX;
 
 						#if ENGINE == Engine_G2A
@@ -823,6 +840,12 @@ namespace GOTHIC_NAMESPACE
 
 				return isCtxValid(currCtx) ? currCtx->spellID : -1;
 			}
+			int getCtxSpellLevel(int fxID, oCNpc* damageSender, oCNpc* damageReceiver)
+			{
+				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
+
+				return isCtxValid(currCtx) ? currCtx->spellLevel : -1;
+			}
 			zSTRING getCtxStrVisualFX(int fxID, oCNpc* damageSender, oCNpc* damageReceiver)
 			{
 				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
@@ -892,6 +915,12 @@ namespace GOTHIC_NAMESPACE
 
 				if (isCtxValid(currCtx) && currCtx->isApplying && newSpellID >= -1) currCtx->spellID = newSpellID;
 			}
+			void setCtxSpellLevel(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, int newSpellLevel)
+			{
+				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
+
+				if (isCtxValid(currCtx) && currCtx->isApplying && newSpellLevel >= -1) currCtx->spellLevel = newSpellLevel;
+			}
 			void setCtxStrVisualFX(int fxID, oCNpc* damageSender, oCNpc* damageReceiver, zSTRING newStrVisualFX)
 			{
 				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
@@ -938,6 +967,7 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill,
 				float loopInterval,
@@ -948,9 +978,9 @@ namespace GOTHIC_NAMESPACE
 			{
 				if (outerFxProtoID == nullptr) return;
 
-				if (damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				if (damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
 				{
-					addFxProto(outerFxProtoID, damage, damageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+					addFxProto(outerFxProtoID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 				}
 			}
 
@@ -961,13 +991,14 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill
 			)
 			{
-				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0)
+				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0)
 				{
-					addCtx(-1, damageSender, damageReceiver, damage, damageIndex, spellID, strVisualFX, dontKill);
+					addCtx(-1, damageSender, damageReceiver, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill);
 				}
 			}
 
@@ -985,9 +1016,9 @@ namespace GOTHIC_NAMESPACE
 
 				if (!isFxProtoValid(currFxProto)) return;
 
-				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
+				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
 				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
+					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
 
 					addCtx(*outerFxID, damageSender, damageReceiver);
 				}
@@ -1001,6 +1032,7 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill,
 				float loopInterval,
@@ -1011,9 +1043,9 @@ namespace GOTHIC_NAMESPACE
 			{
 				if (outerFxID == nullptr) return;
 
-				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
 				{
-					addFx(outerFxID, damage, damageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 
 					addCtx(*outerFxID, damageSender, damageReceiver);
 				}
@@ -1033,9 +1065,9 @@ namespace GOTHIC_NAMESPACE
 
 				if (!isFxProtoValid(currFxProto)) return;
 
-				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
+				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
 				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
+					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
 
 					ctx* prevCtx = getCtx(*outerFxID, damageSender, damageReceiver);
 
@@ -1053,6 +1085,7 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill,
 				float loopInterval,
@@ -1063,9 +1096,9 @@ namespace GOTHIC_NAMESPACE
 			{
 				if (outerFxID == nullptr) return;
 
-				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
 				{
-					addFx(outerFxID, damage, damageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 
 					ctx* prevCtx = getCtx(*outerFxID, damageSender, damageReceiver);
 
@@ -1089,9 +1122,9 @@ namespace GOTHIC_NAMESPACE
 
 				if (!isFxProtoValid(currFxProto)) return;
 
-				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
+				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
 				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
+					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
 
 					ctx* prevCtx = getCtx(*outerFxID, damageSender, damageReceiver);
 
@@ -1109,6 +1142,7 @@ namespace GOTHIC_NAMESPACE
 				int damage,
 				int damageIndex,
 				int spellID,
+				int spellLevel,
 				zSTRING strVisualFX,
 				int dontKill,
 				float loopInterval,
@@ -1119,9 +1153,9 @@ namespace GOTHIC_NAMESPACE
 			{
 				if (outerFxID == nullptr) return;
 
-				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				if (damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
 				{
-					addFx(outerFxID, damage, damageIndex, spellID, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 
 					ctx* prevCtx = getCtx(*outerFxID, damageSender, damageReceiver);
 
@@ -1212,6 +1246,12 @@ namespace GOTHIC_NAMESPACE
 
 				return isFxValid(currFx) && currFx->outerID == outerFxID ? getCtxSpellID(*outerFxID, damageSender, damageReceiver) : -1;
 			}
+			int getFxSpellLevel(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
+			{
+				fx* currFx = getFx(*outerFxID);
+
+				return isFxValid(currFx) && currFx->outerID == outerFxID ? getCtxSpellLevel(*outerFxID, damageSender, damageReceiver) : -1;
+			}
 			zSTRING getFxStrVisualFX(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
 			{
 				fx* currFx = getFx(*outerFxID);
@@ -1280,6 +1320,12 @@ namespace GOTHIC_NAMESPACE
 				fx* currFx = getFx(*outerFxID);
 
 				if (isFxValid(currFx) && currFx->outerID == outerFxID) setCtxSpellID(*outerFxID, damageSender, damageReceiver, newSpellID);
+			}
+			void setFxSpellLevel(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, int newSpellLevel)
+			{
+				fx* currFx = getFx(*outerFxID);
+
+				if (isFxValid(currFx) && currFx->outerID == outerFxID) setCtxSpellLevel(*outerFxID, damageSender, damageReceiver, newSpellLevel);
 			}
 			void setFxStrVisualFX(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver, zSTRING newStrVisualFX)
 			{

@@ -12,11 +12,11 @@ namespace GOTHIC_NAMESPACE
 
 		return dataValue;
 	}
-	int Call_PullCustomDamage(int damageIndex, int initialPureDamage, int isCrit, int spellID)
+	int Call_PullCustomDamage(int damageIndex, int initialPureDamage, int isCrit, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullCustomDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialPureDamage, isCrit, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialPureDamage, isCrit, spellID, spellLevel);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -47,11 +47,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullMinimalDamage(int damageIndex, int initialMinimalDamage, int spellID)
+	int Call_PullMinimalDamage(int damageIndex, int initialMinimalDamage, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullMinimalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialMinimalDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialMinimalDamage, spellID, spellLevel);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -59,11 +59,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullPureDamage(int damageIndex, int initialPureDamage, int spellID)
+	int Call_PullPureDamage(int damageIndex, int initialPureDamage, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullPureDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialPureDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialPureDamage, spellID, spellLevel);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -71,11 +71,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullTotalDamage(int damageIndex, int initialTotalDamage, int spellID)
+	int Call_PullTotalDamage(int damageIndex, int initialTotalDamage, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullTotalDamage")); if (funcIndex < 0) return -1;
 
-		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialTotalDamage, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialTotalDamage, spellID, spellLevel);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < 0) return -1;
@@ -83,11 +83,11 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	int Call_PullProtection(int damageIndex, int initialProtection, int spellID)
+	int Call_PullProtection(int damageIndex, int initialProtection, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullProtection")); if (funcIndex < 0) return -2;
 
-		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialProtection, spellID);
+		void* pRet = parser->CallFunc(funcIndex, damageIndex, initialProtection, spellID, spellLevel);
 		int dataValue = *reinterpret_cast<int*>(pRet);
 
 		if (dataValue < -1) return -2;
@@ -95,18 +95,18 @@ namespace GOTHIC_NAMESPACE
 		return dataValue;
 	}
 
-	void Call_PullPreDamage(int damageIndex, int spellID)
+	void Call_PullPreDamage(int damageIndex, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullPreDamage")); if (funcIndex < 0) return;
 
-		parser->CallFunc(funcIndex, damageIndex, spellID);
+		parser->CallFunc(funcIndex, damageIndex, spellID, spellLevel);
 	}
 
-	void Call_PullPostDamage(int damageIndex, int spellID)
+	void Call_PullPostDamage(int damageIndex, int spellID, int spellLevel)
 	{
 		int funcIndex = parser->GetIndex(zSTRING("PullPostDamage")); if (funcIndex < 0) return;
 
-		parser->CallFunc(funcIndex, damageIndex, spellID);
+		parser->CallFunc(funcIndex, damageIndex, spellID, spellLevel);
 	}
 
 
@@ -149,7 +149,7 @@ namespace GOTHIC_NAMESPACE
 
 		if (damageIndex >= 0)
 		{
-			pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID);
+			pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID, dd.nSpellLevel);
 		}
 
 		if (pureDamage >= 0)
@@ -160,9 +160,9 @@ namespace GOTHIC_NAMESPACE
 
 
 		// damage applying
-		Call_PullPreDamage(customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : damageIndex, dd.nSpellID);
+		Call_PullPreDamage(customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : damageIndex, dd.nSpellID, dd.nSpellLevel);
 		Hook_oCNpc_OnDamage_Hit(self, vtable, dd);
-		Call_PullPostDamage(customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : damageIndex, dd.nSpellID);
+		Call_PullPostDamage(customDamageIndex >= oEDamageIndex_MAX ? customDamageIndex : damageIndex, dd.nSpellID, dd.nSpellLevel);
 		// damage applying
 
 
@@ -195,7 +195,7 @@ namespace GOTHIC_NAMESPACE
 	auto Hook_oCNpc_OnDamage_Hit_GetProtection = CreatePartialHook((void*)zSwitch(0x00736510, 0x0066B733), &oCNpc_OnDamage_Hit_GetProtection);
 	void __fastcall oCNpc_OnDamage_Hit_GetProtection(Union::Registers& reg)
 	{
-		protection = Call_PullProtection(damageIndex, reg.eax, gDamageDescriptor->nSpellID);
+		protection = Call_PullProtection(damageIndex, reg.eax, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 		if (protection != -1 && protection >= 0)
 		{
@@ -267,7 +267,7 @@ namespace GOTHIC_NAMESPACE
 			int initialTotalDamage = totalDamage > 0 ? totalDamage : 0;
 			int initialMinimalDamage = reg.eax > 0 ? reg.eax : 0;
 
-			totalDamage = Call_PullTotalDamage(damageIndex, initialTotalDamage, gDamageDescriptor->nSpellID);
+			totalDamage = Call_PullTotalDamage(damageIndex, initialTotalDamage, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 			if (totalDamage >= 0)
 			{
@@ -278,7 +278,7 @@ namespace GOTHIC_NAMESPACE
 				reg.eax = initialTotalDamage;
 			}
 
-			minimalDamage = Call_PullMinimalDamage(damageIndex, initialMinimalDamage, gDamageDescriptor->nSpellID);
+			minimalDamage = Call_PullMinimalDamage(damageIndex, initialMinimalDamage, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 			if (minimalDamage >= 0 && reg.eax < minimalDamage)
 			{
@@ -299,7 +299,7 @@ namespace GOTHIC_NAMESPACE
 			int& resultTotalDamage = *(int*)(reg.esp + 0xFC);
 			isCrit = *(int*)(reg.esp + 0x11C);
 
-			totalDamage = Call_PullTotalDamage(damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID);
+			totalDamage = Call_PullTotalDamage(damageIndex, resultTotalDamage, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 			if (totalDamage >= 0)
 			{
@@ -321,7 +321,7 @@ namespace GOTHIC_NAMESPACE
 		auto Hook_oCNpc_OnDamage_Hit_GetMinimalDamage = CreatePartialHook((void*)0x0066CAA0, &oCNpc_OnDamage_Hit_GetMinimalDamage);
 		void __fastcall oCNpc_OnDamage_Hit_GetMinimalDamage(Union::Registers& reg)
 		{
-			minimalDamage = Call_PullMinimalDamage(damageIndex, reg.eax, gDamageDescriptor->nSpellID);
+			minimalDamage = Call_PullMinimalDamage(damageIndex, reg.eax, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 			if (minimalDamage >= 0)
 			{
@@ -347,7 +347,7 @@ namespace GOTHIC_NAMESPACE
 
 			if (customDamageIndex >= 0)
 			{
-				int customDamage = Call_PullCustomDamage(customDamageIndex, customPureDamage, isCrit, gDamageDescriptor->nSpellID);
+				int customDamage = Call_PullCustomDamage(customDamageIndex, customPureDamage, isCrit, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 				if (customDamage >= 0)
 				{
@@ -371,7 +371,7 @@ namespace GOTHIC_NAMESPACE
 
 			if (customDamageIndex >= oEDamageIndex_MAX)
 			{
-				int customDamage = Call_PullCustomDamage(customDamageIndex, customPureDamage, isCrit, gDamageDescriptor->nSpellID);
+				int customDamage = Call_PullCustomDamage(customDamageIndex, customPureDamage, isCrit, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
 				if (customDamage >= 0)
 				{
