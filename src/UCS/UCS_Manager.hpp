@@ -984,6 +984,7 @@ namespace GOTHIC_NAMESPACE
 				}
 			}
 
+
 			void startInstantFx
 			(
 				oCNpc* damageSender,
@@ -1177,6 +1178,318 @@ namespace GOTHIC_NAMESPACE
 				ctx* currCtx = getCtx(*outerFxID, damageSender, damageReceiver);
 
 				if (currCtx) currCtx->shouldClose = true;
+			}
+
+
+			zCArray<oCNpc*> getAreaDamageReceivers(int fxID, float areaRadius, int inclCndFuncIndex, oCNpc* damageSender, oCNpc* centralDamageReceiver)
+			{
+				zCArray<oCNpc*> areaDamageReceiversArray{};
+
+				if (areaRadius < 0.0f || !damageSender || !centralDamageReceiver)
+					return areaDamageReceiversArray;
+
+
+				zCArray vobList = ogame->GetGameWorld()->activeVobList;
+
+				for (int i = 0; i < vobList.GetNum(); ++i)
+				{
+					zCVob* vob = vobList[i];
+
+					if (centralDamageReceiver->GetDistanceToVob(*vob) > areaRadius)
+						continue;
+					if (vob->_GetClassDef()->className != "oCNpc")
+						continue;
+
+					oCNpc* currentDamageReceiver = dynamic_cast<oCNpc*>(vob);
+
+					if (currentDamageReceiver == damageSender)
+						continue;
+
+					if (inclCndFuncIndex >= 0)
+					{
+						parser->SetInstance("SELF", currentDamageReceiver);
+						parser->SetInstance("OTHER", damageSender);
+
+						void* pRet = parser->CallFunc(inclCndFuncIndex, fxID);
+						int isFuncTrue = *reinterpret_cast<int*>(pRet);
+
+						if (!isFuncTrue) continue;
+					}
+
+					areaDamageReceiversArray.Insert(currentDamageReceiver);
+				}
+
+				return areaDamageReceiversArray;
+			}
+
+			void startAreaInstantFx
+			(
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver,
+				int damage,
+				int damageIndex,
+				int spellID,
+				int spellLevel,
+				zSTRING strVisualFX,
+				int dontKill
+			)
+			{
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0)
+				{
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(-1, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						addCtx(-1, damageSender, currentDamageReceiver, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill);
+					}
+				}
+			}
+
+			void startAreaFx
+			(
+				int* outerFxID,
+				int* outerFxProtoID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver
+			)
+			{
+				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
+
+				fxProto* currFxProto = getFxProto(*outerFxProtoID);
+
+				if (!isFxProtoValid(currFxProto)) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
+				{
+					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
+
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						addCtx(*outerFxID, damageSender, currentDamageReceiver);
+					}
+				}
+			}
+
+			void startAreaFxEx
+			(
+				int* outerFxID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver,
+				int damage,
+				int damageIndex,
+				int spellID,
+				int spellLevel,
+				zSTRING strVisualFX,
+				int dontKill,
+				float loopInterval,
+				int iterCount,
+				float startDelay,
+				int exCndFuncIndex
+			)
+			{
+				if (outerFxID == nullptr) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				{
+					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						addCtx(*outerFxID, damageSender, currentDamageReceiver);
+					}
+				}
+			}
+
+			void refreshAreaFx
+			(
+				int* outerFxID,
+				int* outerFxProtoID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver
+			)
+			{
+				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
+
+				fxProto* currFxProto = getFxProto(*outerFxProtoID);
+
+				if (!isFxProtoValid(currFxProto)) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
+				{
+					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
+
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						ctx* prevCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						addCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRefresh = true;
+					}
+				}
+			}
+
+			void refreshAreaFxEx
+			(
+				int* outerFxID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver,
+				int damage,
+				int damageIndex,
+				int spellID,
+				int spellLevel,
+				zSTRING strVisualFX,
+				int dontKill,
+				float loopInterval,
+				int iterCount,
+				float startDelay,
+				int exCndFuncIndex
+			)
+			{
+				if (outerFxID == nullptr) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				{
+					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						ctx* prevCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						addCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRefresh = true;
+					}
+				}
+			}
+
+			void restartAreaFx
+			(
+				int* outerFxID,
+				int* outerFxProtoID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver
+			)
+			{
+				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
+
+				fxProto* currFxProto = getFxProto(*outerFxProtoID);
+
+				if (!isFxProtoValid(currFxProto)) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
+				{
+					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
+
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						ctx* prevCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						addCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRestart = true;
+					}
+				}
+			}
+
+			void restartAreaFxEx
+			(
+				int* outerFxID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver,
+				int damage,
+				int damageIndex,
+				int spellID,
+				int spellLevel,
+				zSTRING strVisualFX,
+				int dontKill,
+				float loopInterval,
+				int iterCount,
+				float startDelay,
+				int exCndFuncIndex
+			)
+			{
+				if (outerFxID == nullptr) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+				{
+					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						ctx* prevCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						addCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRestart = true;
+					}
+				}
+			}
+
+			void stopAreaFx
+			(
+				int* outerFxID,
+				float areaRadius,
+				int inclCndFuncIndex,
+				oCNpc* damageSender,
+				oCNpc* damageReceiver
+			)
+			{
+				if (outerFxID == nullptr) return;
+
+				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1)
+				{
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+
+					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
+					{
+						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
+
+						ctx* currCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
+
+						if (currCtx) currCtx->shouldClose = true;
+					}
+				}
 			}
 
 

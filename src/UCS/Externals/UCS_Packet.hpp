@@ -64,6 +64,7 @@ namespace GOTHIC_NAMESPACE
 
 		return 0;
 	}
+
 	int __cdecl UCS_StartFX()
 	{
 		int* outerFxID;
@@ -119,6 +120,7 @@ namespace GOTHIC_NAMESPACE
 
 		return 0;
 	}
+
 	int __cdecl UCS_RefreshFX()
 	{
 		int* outerFxID;
@@ -174,6 +176,7 @@ namespace GOTHIC_NAMESPACE
 
 		return 0;
 	}
+
 	int __cdecl UCS_RestartFX()
 	{
 		int* outerFxID;
@@ -240,6 +243,258 @@ namespace GOTHIC_NAMESPACE
 		outerFxID = parser->PopVarAddress();
 
 		ucsManager.stopFx(outerFxID, damageSender, damageReceiver);
+
+		return 0;
+	}
+
+	int __cdecl UCS_AreaHit()
+	{
+		float areaRadius;
+		int inclCndFuncIndex;
+		int damage;
+		int damageIndex;
+		int spellID;
+		int spellLevel;
+		zSTRING strVisualFX;
+		int dontKill;
+
+		parser->GetParameter(dontKill);
+		parser->GetParameter(strVisualFX);
+		parser->GetParameter(spellLevel);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && areaRadius >= 0.0 && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0)
+		{
+			ucsManager.startAreaInstantFx(areaRadius, inclCndFuncIndex, damageSender, damageReceiver, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill);
+		}
+
+		return 0;
+	}
+
+	int __cdecl UCS_StartAreaFX()
+	{
+		int* outerFxID;
+		int* outerFxProtoID;
+		float areaRadius;
+		int inclCndFuncIndex;
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxProtoID = parser->PopVarAddress();
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && outerFxProtoID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr)
+		{
+			ucsManager.startAreaFx(outerFxID, outerFxProtoID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+		}
+
+		return 0;
+	}
+	int __cdecl UCS_StartAreaFXEX()
+	{
+		int* outerFxID;
+		float areaRadius;
+		int inclCndFuncIndex;
+		int damage;
+		int damageIndex;
+		int spellID;
+		int spellLevel;
+		zSTRING strVisualFX;
+		int dontKill;
+		float loopInterval;
+		int iterCount;
+		float startDelay;
+		int exCndFuncIndex;
+
+		parser->GetParameter(exCndFuncIndex);
+		parser->GetParameter(startDelay);
+		parser->GetParameter(iterCount);
+		parser->GetParameter(loopInterval);
+		parser->GetParameter(dontKill);
+		parser->GetParameter(strVisualFX);
+		parser->GetParameter(spellLevel);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+		{
+			ucsManager.startAreaFxEx(outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+		}
+
+		return 0;
+	}
+
+	int __cdecl UCS_RefreshAreaFX()
+	{
+		int* outerFxID;
+		int* outerFxProtoID;
+		float areaRadius;
+		int inclCndFuncIndex;
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxProtoID = parser->PopVarAddress();
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && outerFxProtoID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr)
+		{
+			ucsManager.refreshAreaFx(outerFxID, outerFxProtoID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+		}
+
+		return 0;
+	}
+	int __cdecl UCS_RefreshAreaFXEX()
+	{
+		int* outerFxID;
+		float areaRadius;
+		int inclCndFuncIndex;
+		int damage;
+		int damageIndex;
+		int spellID;
+		int spellLevel;
+		zSTRING strVisualFX;
+		int dontKill;
+		float loopInterval;
+		int iterCount;
+		float startDelay;
+		int exCndFuncIndex;
+
+		parser->GetParameter(exCndFuncIndex);
+		parser->GetParameter(startDelay);
+		parser->GetParameter(iterCount);
+		parser->GetParameter(loopInterval);
+		parser->GetParameter(dontKill);
+		parser->GetParameter(strVisualFX);
+		parser->GetParameter(spellLevel);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+		{
+			ucsManager.refreshAreaFxEx(outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+		}
+
+		return 0;
+	}
+
+	int __cdecl UCS_RestartAreaFX()
+	{
+		int* outerFxID;
+		int* outerFxProtoID;
+		float areaRadius;
+		int inclCndFuncIndex;
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxProtoID = parser->PopVarAddress();
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && outerFxProtoID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr)
+		{
+			ucsManager.restartAreaFx(outerFxID, outerFxProtoID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+		}
+
+		return 0;
+	}
+	int __cdecl UCS_RestartAreaFXEX()
+	{
+		int* outerFxID;
+		float areaRadius;
+		int inclCndFuncIndex;
+		int damage;
+		int damageIndex;
+		int spellID;
+		int spellLevel;
+		zSTRING strVisualFX;
+		int dontKill;
+		float loopInterval;
+		int iterCount;
+		float startDelay;
+		int exCndFuncIndex;
+
+		parser->GetParameter(exCndFuncIndex);
+		parser->GetParameter(startDelay);
+		parser->GetParameter(iterCount);
+		parser->GetParameter(loopInterval);
+		parser->GetParameter(dontKill);
+		parser->GetParameter(strVisualFX);
+		parser->GetParameter(spellLevel);
+		parser->GetParameter(spellID);
+		parser->GetParameter(damageIndex);
+		parser->GetParameter(damage);
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
+		{
+			ucsManager.restartAreaFxEx(outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
+		}
+
+		return 0;
+	}
+
+	int __cdecl UCS_StopAreaFX()
+	{
+		int* outerFxID;
+		float areaRadius;
+		int inclCndFuncIndex;
+
+		oCNpc* damageReceiver = (oCNpc*)(parser->GetInstance());
+		oCNpc* damageSender = (oCNpc*)(parser->GetInstance());
+
+		parser->GetParameter(inclCndFuncIndex);
+		parser->GetParameter(areaRadius);
+
+		outerFxID = parser->PopVarAddress();
+
+		if (outerFxID != nullptr && areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr)
+		{
+			ucsManager.stopAreaFx(outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+		}
 
 		return 0;
 	}
@@ -588,6 +843,15 @@ namespace GOTHIC_NAMESPACE
 		parser->DefineExternal("UCS_RestartFX", UCS_RestartFX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 		parser->DefineExternal("UCS_RestartFXEX", UCS_RestartFXEX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
 		parser->DefineExternal("UCS_StopFX", UCS_StopFX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+
+		parser->DefineExternal("UCS_AreaHit", UCS_AreaHit, zPAR_TYPE_VOID, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_StartAreaFX", UCS_StartAreaFX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_StartAreaFXEX", UCS_StartAreaFXEX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_RefreshAreaFX", UCS_RefreshAreaFX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_RefreshAreaFXEX", UCS_RefreshAreaFXEX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_RestartAreaFX", UCS_RestartAreaFX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_RestartAreaFXEX", UCS_RestartAreaFXEX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_STRING, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_VOID);
+		parser->DefineExternal("UCS_StopAreaFX", UCS_StopAreaFX, zPAR_TYPE_VOID, zPAR_TYPE_INT, zPAR_TYPE_FLOAT, zPAR_TYPE_FUNC, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 
 		parser->DefineExternal("UCS_IsRunning", UCS_IsRunning, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
 		parser->DefineExternal("UCS_IsCompleted", UCS_IsCompleted, zPAR_TYPE_INT, zPAR_TYPE_INT, zPAR_TYPE_INSTANCE, zPAR_TYPE_INSTANCE, zPAR_TYPE_VOID);
