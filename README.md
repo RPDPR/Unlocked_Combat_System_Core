@@ -61,7 +61,7 @@ Extract the archive. Each one contains:
 * `README.txt` — Full SDK documentation reference.
 
 > <img width="91" height="118" alt="image" src="https://github.com/user-attachments/assets/b44ca3f3-803c-4f2a-85f7-580b90db9202" />
-> <img width="91" height="118" alt="image" src="https://github.com/user-attachments/assets/d56678da-bd7f-4a9b-b7ac-4df1435e553b" />
+> <img width="91" height="117" alt="image" src="https://github.com/user-attachments/assets/d56678da-bd7f-4a9b-b7ac-4df1435e553b" />
 
 
 
