@@ -10,9 +10,9 @@
 
 namespace GOTHIC_NAMESPACE
 {
-	void Call_UCS_Init()
+	void Call_UCS_InitFXProto()
 	{
-		int funcIndex = parser->GetIndex(zSTRING("UCS_Init")); if (funcIndex < 0) return;
+		int funcIndex = parser->GetIndex(zSTRING("UCS_InitFXProto")); if (funcIndex < 0) return;
 
 		parser->CallFunc(funcIndex);
 	}
@@ -22,7 +22,7 @@ namespace GOTHIC_NAMESPACE
 	void __fastcall oCGame_Init(oCGame* self, void* vtable)
 	{
 		Hook_oCGame_Init(self, vtable);
-		Call_UCS_Init();
+		Call_UCS_InitFXProto();
 	}
 
 	void __fastcall oCGame_MainWorld_Render(Union::Registers& reg);

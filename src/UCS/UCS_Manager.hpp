@@ -785,6 +785,26 @@ namespace GOTHIC_NAMESPACE
 
 			// ctx getters
 
+			bool getCtxHasSender(int fxID, oCNpc* damageSender)
+			{
+				for (auto& el : ctxCollection)
+				{
+					if (!isCtxValid(&el.second)) continue;
+
+					if (el.second.fxID == fxID && el.second.damageSender == damageSender) return true;
+				}
+				return false;
+			}
+			bool getCtxHasReceiver(int fxID, oCNpc* damageReceiver)
+			{
+				for (auto& el : ctxCollection)
+				{
+					if (!isCtxValid(&el.second)) continue;
+
+					if (el.second.fxID == fxID && el.second.damageReceiver == damageReceiver) return true;
+				}
+				return false;
+			}
 			bool getCtxIsRunning(int fxID, oCNpc* damageSender, oCNpc* damageReceiver)
 			{
 				ctx* currCtx = getCtx(fxID, damageSender, damageReceiver);
@@ -1504,6 +1524,18 @@ namespace GOTHIC_NAMESPACE
 				return currentCD >= 0 ? currentCD : -1;
 			}
 
+			bool getFxHasSender(int* outerFxID, oCNpc* damageSender)
+			{
+				fx* currFx = getFx(*outerFxID);
+
+				return isFxValid(currFx) && currFx->outerID == outerFxID ? getCtxHasSender(*outerFxID, damageSender) : false;
+			}
+			bool getFxHasReceiver(int* outerFxID, oCNpc* damageReceiver)
+			{
+				fx* currFx = getFx(*outerFxID);
+
+				return isFxValid(currFx) && currFx->outerID == outerFxID ? getCtxHasReceiver(*outerFxID, damageReceiver) : false;
+			}
 			bool getFxIsRunning(int* outerFxID, oCNpc* damageSender, oCNpc* damageReceiver)
 			{
 				fx* currFx = getFx(*outerFxID);
