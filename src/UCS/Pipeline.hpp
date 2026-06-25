@@ -149,13 +149,15 @@ namespace GOTHIC_NAMESPACE
 
 		if (damageIndex >= 0)
 		{
-			pureDamage = Call_PullPureDamage(damageIndex, dd.aryDamage[damageIndex], dd.nSpellID, dd.nSpellLevel);
-		}
+			int initialPureDamage = dd.aryDamage[damageIndex] ? dd.aryDamage[damageIndex] : dd.fDamageTotal ? (int)dd.fDamageTotal : 0;
 
-		if (pureDamage >= 0)
-		{
-			dd.aryDamage[damageIndex] = pureDamage;
-			dd.fDamageTotal = pureDamage;
+			pureDamage = Call_PullPureDamage(damageIndex, initialPureDamage, dd.nSpellID, dd.nSpellLevel);
+			
+			if (pureDamage >= 0)
+			{
+				dd.aryDamage[damageIndex] = pureDamage;
+				dd.fDamageTotal = (float)pureDamage;
+			}
 		}
 
 
@@ -197,7 +199,7 @@ namespace GOTHIC_NAMESPACE
 	{
 		protection = Call_PullProtection(damageIndex, reg.eax, gDamageDescriptor->nSpellID, gDamageDescriptor->nSpellLevel);
 
-		if (protection != -1 && protection >= 0)
+		if (protection >= -1)
 		{
 			#if ENGINE == Engine_G1
 

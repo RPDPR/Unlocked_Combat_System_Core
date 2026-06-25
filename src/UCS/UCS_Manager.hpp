@@ -90,14 +90,6 @@ namespace GOTHIC_NAMESPACE
 			int currentCD = -1;
 
 
-			struct fxProto : FxData
-			{
-				int id;
-				int* outerID;
-			};
-
-			std::unordered_map<int, fxProto> fxProtoCollection;
-
 			struct fx : FxData
 			{
 				int id;
@@ -145,89 +137,6 @@ namespace GOTHIC_NAMESPACE
 
 
 			//  M E T H O D S  /////
-
-			// fx prototype
-
-			fxProto* getFxProto(int fxProtoID)
-			{
-				auto it = fxProtoCollection.find(fxProtoID);
-
-				if (it == fxProtoCollection.end()) return nullptr;
-
-				return &it->second;
-			}
-
-			bool isFxProtoValid(fxProto* currFxProto)
-			{
-				if (currFxProto == nullptr ||
-					currFxProto->id < 0 ||
-					currFxProto->damage < 0 ||
-					currFxProto->damageIndex < 0 ||
-					currFxProto->spellID < -1 ||
-					currFxProto->spellLevel < -1 ||
-					currFxProto->dontKill < 0 ||
-					currFxProto->loopInterval < 100.0f ||
-					currFxProto->iterCount < 0 && currFxProto->exCndFuncIndex < 0 ||
-					currFxProto->startDelay < -1.0f)
-					return false;
-
-				return true;
-			}
-
-			void addFxProto
-			(
-				int* outerFxProtoID,
-				int damage,
-				int damageIndex,
-				int spellID,
-				int spellLevel,
-				zSTRING strVisualFX,
-				int dontKill,
-				float loopInterval,
-				int iterCount,
-				float startDelay,
-				int exCndFuncIndex
-			)
-			{
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (isFxProtoValid(currFxProto) && currFxProto->outerID == outerFxProtoID)
-				{
-					currFxProto->damage = damage;
-					currFxProto->damageIndex = damageIndex;
-					currFxProto->spellID = spellID;
-					currFxProto->spellLevel = spellLevel;
-					currFxProto->strVisualFX = strVisualFX;
-					currFxProto->dontKill = dontKill;
-					currFxProto->loopInterval = loopInterval;
-					currFxProto->iterCount = iterCount;
-					currFxProto->startDelay = startDelay;
-					currFxProto->exCndFuncIndex = exCndFuncIndex;
-
-					*currFxProto->outerID = currFxProto->id; return;
-				}
-
-
-				fxProto newFxProto{};
-
-				newFxProto.id = nextFxProtoID++;
-				newFxProto.outerID = outerFxProtoID;
-				*newFxProto.outerID = newFxProto.id;
-
-				newFxProto.damage = damage;
-				newFxProto.damageIndex = damageIndex;
-				newFxProto.spellID = spellID;
-				newFxProto.spellLevel = spellLevel;
-				newFxProto.strVisualFX = strVisualFX;
-				newFxProto.dontKill = dontKill;
-				newFxProto.loopInterval = loopInterval;
-				newFxProto.iterCount = iterCount;
-				newFxProto.startDelay = startDelay;
-				newFxProto.exCndFuncIndex = exCndFuncIndex;
-
-				fxProtoCollection[newFxProto.id] = newFxProto;
-			}
-
 
 			// fx instance
 
@@ -981,30 +890,6 @@ namespace GOTHIC_NAMESPACE
 
 		public:
 
-			void createFxProto
-			(
-				int* outerFxProtoID,
-				int damage,
-				int damageIndex,
-				int spellID,
-				int spellLevel,
-				zSTRING strVisualFX,
-				int dontKill,
-				float loopInterval,
-				int iterCount,
-				float startDelay,
-				int exCndFuncIndex
-			)
-			{
-				if (outerFxProtoID == nullptr) return;
-
-				if (damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0 && loopInterval >= 100.0f && iterCount >= -1 && startDelay >= -1.0f && exCndFuncIndex >= -1)
-				{
-					addFxProto(outerFxProtoID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
-				}
-			}
-
-
 			void startInstantFx
 			(
 				oCNpc* damageSender,
@@ -1024,28 +909,6 @@ namespace GOTHIC_NAMESPACE
 			}
 
 			void startFx
-			(
-				int* outerFxID,
-				int* outerFxProtoID,
-				oCNpc* damageSender,
-				oCNpc* damageReceiver
-			)
-			{
-				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
-
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (!isFxProtoValid(currFxProto)) return;
-
-				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
-				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
-
-					addCtx(*outerFxID, damageSender, damageReceiver);
-				}
-			}
-
-			void startFxEx
 			(
 				int* outerFxID,
 				oCNpc* damageSender,
@@ -1073,32 +936,6 @@ namespace GOTHIC_NAMESPACE
 			}
 
 			void refreshFx
-			(
-				int* outerFxID,
-				int* outerFxProtoID,
-				oCNpc* damageSender,
-				oCNpc* damageReceiver
-			)
-			{
-				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
-
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (!isFxProtoValid(currFxProto)) return;
-
-				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
-				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
-
-					ctx* prevCtx = getCtx(*outerFxID, damageSender, damageReceiver);
-
-					addCtx(*outerFxID, damageSender, damageReceiver);
-
-					if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRefresh = true;
-				}
-			}
-
-			void refreshFxEx
 			(
 				int* outerFxID,
 				oCNpc* damageSender,
@@ -1130,32 +967,6 @@ namespace GOTHIC_NAMESPACE
 			}
 
 			void restartFx
-			(
-				int* outerFxID,
-				int* outerFxProtoID,
-				oCNpc* damageSender,
-				oCNpc* damageReceiver
-			)
-			{
-				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
-
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (!isFxProtoValid(currFxProto)) return;
-
-				if (damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
-				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
-
-					ctx* prevCtx = getCtx(*outerFxID, damageSender, damageReceiver);
-
-					addCtx(*outerFxID, damageSender, damageReceiver);
-
-					if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRestart = true;
-				}
-			}
-
-			void restartFxEx
 			(
 				int* outerFxID,
 				oCNpc* damageSender,
@@ -1201,7 +1012,7 @@ namespace GOTHIC_NAMESPACE
 			}
 
 
-			zCArray<oCNpc*> getAreaDamageReceivers(int fxID, float areaRadius, int inclCndFuncIndex, oCNpc* damageSender, oCNpc* centralDamageReceiver)
+			zCArray<oCNpc*> getAreaDamageReceivers(float areaRadius, int inclCndFuncIndex, oCNpc* damageSender, oCNpc* centralDamageReceiver)
 			{
 				zCArray<oCNpc*> areaDamageReceiversArray{};
 
@@ -1229,8 +1040,9 @@ namespace GOTHIC_NAMESPACE
 					{
 						parser->SetInstance("SELF", currentDamageReceiver);
 						parser->SetInstance("OTHER", damageSender);
+						parser->SetInstance("VICTIM", centralDamageReceiver);
 
-						void* pRet = parser->CallFunc(inclCndFuncIndex, fxID);
+						void* pRet = parser->CallFunc(inclCndFuncIndex);
 						int isFuncTrue = *reinterpret_cast<int*>(pRet);
 
 						if (!isFuncTrue) continue;
@@ -1258,7 +1070,7 @@ namespace GOTHIC_NAMESPACE
 			{
 				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && damage >= 0 && damageIndex >= 0 && spellID >= -1 && spellLevel >= -1 && strVisualFX && dontKill >= 0)
 				{
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(-1, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
 
 					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
 					{
@@ -1272,37 +1084,6 @@ namespace GOTHIC_NAMESPACE
 			void startAreaFx
 			(
 				int* outerFxID,
-				int* outerFxProtoID,
-				float areaRadius,
-				int inclCndFuncIndex,
-				oCNpc* damageSender,
-				oCNpc* damageReceiver
-			)
-			{
-				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
-
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (!isFxProtoValid(currFxProto)) return;
-
-				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
-				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
-
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
-
-					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
-					{
-						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
-
-						addCtx(*outerFxID, damageSender, currentDamageReceiver);
-					}
-				}
-			}
-
-			void startAreaFxEx
-			(
-				int* outerFxID,
 				float areaRadius,
 				int inclCndFuncIndex,
 				oCNpc* damageSender,
@@ -1325,7 +1106,7 @@ namespace GOTHIC_NAMESPACE
 				{
 					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
 
 					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
 					{
@@ -1339,41 +1120,6 @@ namespace GOTHIC_NAMESPACE
 			void refreshAreaFx
 			(
 				int* outerFxID,
-				int* outerFxProtoID,
-				float areaRadius,
-				int inclCndFuncIndex,
-				oCNpc* damageSender,
-				oCNpc* damageReceiver
-			)
-			{
-				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
-
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (!isFxProtoValid(currFxProto)) return;
-
-				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
-				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
-
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
-
-					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
-					{
-						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
-
-						ctx* prevCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
-
-						addCtx(*outerFxID, damageSender, currentDamageReceiver);
-
-						if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRefresh = true;
-					}
-				}
-			}
-
-			void refreshAreaFxEx
-			(
-				int* outerFxID,
 				float areaRadius,
 				int inclCndFuncIndex,
 				oCNpc* damageSender,
@@ -1396,7 +1142,7 @@ namespace GOTHIC_NAMESPACE
 				{
 					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
 
 					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
 					{
@@ -1414,41 +1160,6 @@ namespace GOTHIC_NAMESPACE
 			void restartAreaFx
 			(
 				int* outerFxID,
-				int* outerFxProtoID,
-				float areaRadius,
-				int inclCndFuncIndex,
-				oCNpc* damageSender,
-				oCNpc* damageReceiver
-			)
-			{
-				if (outerFxID == nullptr || outerFxProtoID == nullptr) return;
-
-				fxProto* currFxProto = getFxProto(*outerFxProtoID);
-
-				if (!isFxProtoValid(currFxProto)) return;
-
-				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1 && damageSender != nullptr && damageReceiver != nullptr && currFxProto->damage >= 0 && currFxProto->damageIndex >= 0 && currFxProto->spellID >= -1 && currFxProto->spellLevel >= -1 && currFxProto->strVisualFX && currFxProto->dontKill >= 0 && currFxProto->loopInterval >= 100.0f && currFxProto->iterCount >= -1 && currFxProto->startDelay >= -1.0f && currFxProto->exCndFuncIndex >= -1)
-				{
-					addFx(outerFxID, currFxProto->damage, currFxProto->damageIndex, currFxProto->spellID, currFxProto->spellLevel, currFxProto->strVisualFX, currFxProto->dontKill, currFxProto->loopInterval, currFxProto->iterCount, currFxProto->startDelay, currFxProto->exCndFuncIndex);
-
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
-
-					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
-					{
-						oCNpc* currentDamageReceiver = areaDamageReceivers[i];
-
-						ctx* prevCtx = getCtx(*outerFxID, damageSender, currentDamageReceiver);
-
-						addCtx(*outerFxID, damageSender, currentDamageReceiver);
-
-						if (isCtxValid(prevCtx) && prevCtx->isRunning) prevCtx->shouldRestart = true;
-					}
-				}
-			}
-
-			void restartAreaFxEx
-			(
-				int* outerFxID,
 				float areaRadius,
 				int inclCndFuncIndex,
 				oCNpc* damageSender,
@@ -1471,7 +1182,7 @@ namespace GOTHIC_NAMESPACE
 				{
 					addFx(outerFxID, damage, damageIndex, spellID, spellLevel, strVisualFX, dontKill, loopInterval, iterCount, startDelay, exCndFuncIndex);
 
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
 
 					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
 					{
@@ -1499,7 +1210,7 @@ namespace GOTHIC_NAMESPACE
 
 				if (areaRadius >= 0.0f && inclCndFuncIndex >= -1)
 				{
-					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(*outerFxID, areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
+					zCArray<oCNpc*> areaDamageReceivers = getAreaDamageReceivers(areaRadius, inclCndFuncIndex, damageSender, damageReceiver);
 
 					for (int i = 0; i < areaDamageReceivers.GetNum(); ++i)
 					{

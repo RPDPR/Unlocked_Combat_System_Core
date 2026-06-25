@@ -42,7 +42,7 @@ The subsystem is designed specifically for `Daedalus scripters`, allowing you to
 
 ---
 
-## Quick Setup (v2.3.0)
+## Quick Setup (v2.4.0)
 
 ### 1. Download
 Download the latest version from [latest release](https://github.com/RPDPR/Unlocked-Combat-System/releases/latest) page
@@ -50,12 +50,11 @@ that matches your game version (**Gothic 1** or **Gothic 2 NoTR**).
 
 Extract the archive. Each one contains:
 * `UCS_gXX.dll` — Core subsystem library.
-* `UCS\` — UCS scripts folder.
+* `UCS\` — UCS scripts.
 * `UCS\Consts_gXX.d` — UCS constants and useful switchers.
+* `UCS\FXLib\` — FX library.
+* `UCS\FXLib\FXLib_Proc.d` — FX library processor.
 * `UCS\OnDamage_gXX.d` — UCS hooks on each 'OnDamage' function breakpoint.
-* `UCS\FX\` — FX Instances folder.
-* `UCS\FX\FXProto` — FX Protos folder.
-* `UCS\FX\FXProto\Init.d` — FX Protos initialization file.
 * `Gothic.src` — Script loading order.
 * `Externals.d` — Parser definitions.
 * `README.txt` — Full SDK documentation reference.
@@ -81,9 +80,9 @@ Extract the archive. Each one contains:
 
 1. Copy the core dynamic library `UCS_gXX.dll` into your game's `\System\Autorun\` folder (preferably packed within a `.mod` or `.vdf` volume for a final release).
 2. Extract `UCS\` folder from the downloaded archive into your project's root directory (`_Work\Data\Scripts\Content\`).
-3. Open your main `Gothic.src` file. Append it with the `UCS\Gothic.src` contents from the downloaded archive right before the `STORY\Startup.d` in the order already specified there.
+3. Open your main `Gothic.src` file. Append it with the `UCS\Gothic.src` contents from the downloaded archive in the order already specified there.
 
-> <img width="297" height="202" alt="image" src="https://github.com/user-attachments/assets/b082c8cc-8923-4daf-b2fd-adda8279ccff" />
+> <img width="460" height="388" alt="image" src="https://github.com/user-attachments/assets/486c3d32-757f-47a1-bee0-9cace13d54cc" />
 
 4. Save file changes and go check it out to the game that all is made correctly!
 
@@ -97,20 +96,6 @@ Extract the archive. Each one contains:
    * In GothicSourcer, go to **Help** -> **Show external functions**.
    * Open the provided `Externals.d` from the archive, copy its contents, and append them to the other signatures.
 5. **Compile** your project as usual.
-
----
-
-## FX Prototype Initialization
-
-UCS v2.0 introduces a native engine startup callback. Inside `UCS\FX\FXProto\Init.d` file, utilize `UCS_InitFXProto()` to define your blueprints. This is the best place to call prototype registrations like this:
-
-```c
-func void UCS_InitFXProto()
-{
-    // Automatically triggered by the core on game startup
-    UCS_CreateFXProto(PoisonFXP, 10, DT_POISON, -1, -1, "PFX_POISON", 0, 1000.0, 5, 500.0, ff);
-}
-```
 
 ---
 
